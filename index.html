@@ -1,0 +1,3022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MongoDB Ops Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --green: #00ED64;
+    --dark-green: #00684A;
+    --navy: #001E2B;
+    --navy2: #023430;
+    --sidebar-bg: #001E2B;
+    --sidebar-w: 230px;
+    --topbar-h: 54px;
+    --gray1: #F9FBFA;
+    --gray2: #E8EDEB;
+    --gray3: #C1C7C6;
+    --gray4: #889397;
+    --gray5: #5C6C75;
+    --text: #001E2B;
+    --red: #DB3030;
+    --yellow: #F5A623;
+    --blue: #0163FF;
+    --radius: 6px;
+    --shadow: 0 1px 4px rgba(0,0,0,.10);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Euclid Circular A', 'Inter', Arial, sans-serif; background: var(--gray1); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-size: 14px; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    height: var(--topbar-h); background: var(--navy); display: flex; align-items: center;
+    padding: 0 18px; gap: 14px; flex-shrink: 0; z-index: 100; box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  }
+  .topbar-logo { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 700; font-size: 15px; }
+  .topbar-logo svg { width: 28px; height: 28px; }
+  .topbar-org {
+    margin-left: 18px; color: var(--gray3); font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .topbar-org span { color: #fff; font-weight: 500; }
+  .topbar-sep { flex: 1; }
+  .topbar-btn {
+    background: none; border: 1px solid #334155; color: var(--gray3); border-radius: var(--radius);
+    padding: 5px 12px; cursor: pointer; font-size: 13px; transition: all .15s;
+  }
+  .topbar-btn:hover { background: #1e3a4a; color: #fff; }
+  .topbar-avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--dark-green);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;
+  }
+  .topbar-notif { position: relative; cursor: pointer; }
+  .topbar-notif-dot {
+    position: absolute; top: -2px; right: -2px; width: 8px; height: 8px;
+    background: var(--red); border-radius: 50%; border: 2px solid var(--navy);
+  }
+
+  /* ── LAYOUT ── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-w); background: var(--sidebar-bg); flex-shrink: 0;
+    display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid #0a2d3d;
+  }
+  .sidebar-project {
+    padding: 12px 14px; border-bottom: 1px solid #0a2d3d; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; transition: background .15s;
+  }
+  .sidebar-project:hover { background: #0a2d3d; }
+  .sidebar-project-icon {
+    width: 28px; height: 28px; border-radius: 4px; background: var(--dark-green);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 11px; flex-shrink: 0;
+  }
+  .sidebar-project-name { color: #fff; font-size: 13px; font-weight: 600; }
+  .sidebar-project-org { color: var(--gray4); font-size: 11px; }
+  .sidebar-project-caret { margin-left: auto; color: var(--gray4); }
+
+  .sidebar-section { padding: 14px 0 4px; }
+  .sidebar-section-label { color: var(--gray4); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 0 14px 6px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px; padding: 8px 14px; cursor: pointer;
+    color: var(--gray3); font-size: 13px; border-left: 3px solid transparent; transition: all .15s; user-select: none;
+  }
+  .nav-item:hover { background: #0a2d3d; color: #fff; }
+  .nav-item.active { background: #0f3547; color: var(--green); border-left-color: var(--green); }
+  .nav-item svg { flex-shrink: 0; opacity: .8; }
+  .nav-item .badge {
+    margin-left: auto; background: var(--red); color: #fff; border-radius: 20px;
+    font-size: 10px; font-weight: 700; padding: 1px 6px; min-width: 18px; text-align: center;
+  }
+  .nav-item .badge.warn { background: var(--yellow); color: #001E2B; }
+  .sidebar-bottom { margin-top: auto; border-top: 1px solid #0a2d3d; padding: 10px 0; }
+
+  /* ── MAIN ── */
+  .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    background: #fff; border-bottom: 1px solid var(--gray2); padding: 18px 28px 14px;
+    display: flex; align-items: flex-end; gap: 16px; flex-shrink: 0;
+  }
+  .page-title { font-size: 22px; font-weight: 700; color: var(--navy); }
+  .page-subtitle { font-size: 13px; color: var(--gray4); margin-top: 2px; }
+  .page-header-actions { margin-left: auto; display: flex; gap: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s;
+  }
+  .btn-primary { background: var(--green); color: var(--navy); }
+  .btn-primary:hover { background: #00b84a; }
+  .btn-secondary { background: #fff; color: var(--navy); border: 1px solid var(--gray3); }
+  .btn-secondary:hover { background: var(--gray2); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { background: #b72626; }
+
+  /* ── CONTENT ── */
+  .content { padding: 24px 28px; flex: 1; }
+
+  /* ── CARDS ── */
+  .card {
+    background: #fff; border-radius: var(--radius); border: 1px solid var(--gray2);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px; border-bottom: 1px solid var(--gray2);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-title { font-weight: 600; font-size: 14px; color: var(--navy); }
+  .card-body { padding: 18px; }
+
+  /* ── STAT CARDS ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: #fff; border: 1px solid var(--gray2); border-radius: var(--radius);
+    padding: 18px; box-shadow: var(--shadow);
+  }
+  .stat-label { font-size: 12px; color: var(--gray4); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--navy); }
+  .stat-sub { font-size: 12px; color: var(--gray4); margin-top: 4px; }
+  .stat-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .stat-badge.green { background: #E0FAF1; color: var(--dark-green); }
+  .stat-badge.red { background: #FDEAEA; color: var(--red); }
+  .stat-badge.yellow { background: #FEF3E2; color: #B45309; }
+
+  /* ── DASHBOARD CLUSTER LIST ── */
+  .cluster-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-bottom: 24px; }
+  .cluster-card {
+    background: #fff; border: 1px solid var(--gray2); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .cluster-card-header {
+    padding: 12px 16px; border-bottom: 1px solid var(--gray2);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .cluster-type-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .badge-rs { background: #EBF5FF; color: #1A56DB; }
+  .badge-sharded { background: #F3E8FF; color: #7E22CE; }
+  .badge-standalone { background: #FEF3E2; color: #B45309; }
+  .cluster-name { font-weight: 600; font-size: 14px; color: var(--navy); }
+  .cluster-actions { margin-left: auto; display: flex; gap: 6px; }
+  .icon-btn {
+    background: none; border: 1px solid var(--gray2); border-radius: 4px; padding: 4px 8px;
+    cursor: pointer; color: var(--gray4); font-size: 12px; transition: all .15s;
+  }
+  .icon-btn:hover { background: var(--gray2); color: var(--navy); }
+  .cluster-nodes { padding: 0 16px 14px; }
+  .node-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid var(--gray1); font-size: 13px;
+  }
+  .node-row:last-child { border-bottom: none; }
+  .node-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .ns-green { background: #00ED64; }
+  .ns-yellow { background: var(--yellow); }
+  .ns-red { background: var(--red); }
+  .node-host { color: var(--navy); font-weight: 500; flex: 1; }
+  .node-role { color: var(--gray4); font-size: 12px; width: 90px; }
+  .node-version { color: var(--gray5); font-size: 12px; width: 60px; }
+  .node-ping { color: var(--gray4); font-size: 12px; text-align: right; }
+
+  /* ── SECTION HIDDEN ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── ALERTS STRIP ── */
+  .alert-strip {
+    display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: var(--radius);
+    margin-bottom: 12px; font-size: 13px;
+  }
+  .alert-strip.crit { background: #FDEAEA; border-left: 4px solid var(--red); }
+  .alert-strip.warn { background: #FEF3E2; border-left: 4px solid var(--yellow); }
+  .alert-strip.info { background: #EBF5FF; border-left: 4px solid var(--blue); }
+  .alert-strip .al-title { font-weight: 600; }
+  .alert-strip .al-time { margin-left: auto; color: var(--gray4); font-size: 12px; }
+
+  /* ── TABLE ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { padding: 9px 14px; background: var(--gray1); color: var(--gray5); font-weight: 600; text-align: left; border-bottom: 2px solid var(--gray2); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .tbl td { padding: 10px 14px; border-bottom: 1px solid var(--gray2); vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: var(--gray1); }
+
+  /* ── MISC ── */
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .pill-green { background: #E0FAF1; color: var(--dark-green); }
+  .pill-red { background: #FDEAEA; color: var(--red); }
+  .pill-yellow { background: #FEF3E2; color: #B45309; }
+  .pill-blue { background: #EBF5FF; color: #1A56DB; }
+  .pill-gray { background: var(--gray2); color: var(--gray5); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  .chart-wrap { position: relative; height: 200px; }
+
+  .progress-bar-wrap { background: var(--gray2); border-radius: 4px; height: 8px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 4px; background: var(--green); }
+  .progress-bar.warn { background: var(--yellow); }
+  .progress-bar.danger { background: var(--red); }
+
+  /* monitoring stat pill */
+  .stat-pill {
+    background:#fff; border:1px solid var(--gray2); border-radius:20px;
+    padding:5px 14px; font-size:13px; color:var(--gray5); box-shadow:var(--shadow);
+  }
+  .stat-pill b { color:var(--navy); }
+
+  /* node tabs */
+  .node-tab {
+    background:none; border:none; border-right:1px solid var(--gray2);
+    padding:8px 16px; font-size:13px; cursor:pointer; color:var(--gray4); transition:all .15s;
+  }
+  .node-tab:last-child { border-right:none; }
+  .node-tab:hover { background:var(--gray1); color:var(--navy); }
+  .node-tab.active { background:var(--navy); color:#fff; }
+
+  /* ── ALERT TABS ── */
+  .alert-tab {
+    background:none; border:none; padding:10px 18px; font-size:14px; cursor:pointer;
+    color:var(--gray4); border-bottom:2px solid transparent; margin-bottom:-2px; font-weight:500; transition:all .15s;
+  }
+  .alert-tab:hover { color:var(--navy); }
+  .alert-tab.active { color:var(--dark-green); border-bottom-color:var(--green); font-weight:600; }
+
+  /* ── SWITCH ── */
+  .switch { position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+  .switch input { opacity:0; width:0; height:0; }
+  .slider { position:absolute; cursor:pointer; inset:0; background:var(--gray3); border-radius:24px; transition:.3s; }
+  .slider:before { content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+  .switch input:checked + .slider { background:var(--green); }
+  .switch input:checked + .slider:before { transform:translateX(18px); }
+
+  /* ── AUTH ROW ── */
+  .auth-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--gray2); }
+
+  /* ── ORG/PROJECT ITEM ── */
+  .org-item { padding:14px 22px; border-bottom:1px solid var(--gray2); cursor:pointer; transition:background .15s; }
+  .org-item:last-child { border-bottom:none; }
+  .org-item:hover { background:var(--gray1); }
+
+  /* ── TOAST ── */
+  #toast-container { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; }
+  .toast {
+    display:flex; align-items:flex-start; gap:10px; padding:13px 16px; border-radius:8px;
+    box-shadow:0 4px 18px rgba(0,0,0,.18); min-width:280px; max-width:380px;
+    animation: toastIn .25s ease; font-size:13px; background:#fff; border:1px solid var(--gray2);
+  }
+  .toast.removing { animation: toastOut .25s ease forwards; }
+  .toast-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+  .toast-body { flex:1; }
+  .toast-title { font-weight:700; color:var(--navy); margin-bottom:2px; }
+  .toast-msg { color:var(--gray5); font-size:12px; line-height:1.4; }
+  .toast-close { background:none; border:none; cursor:pointer; color:var(--gray3); font-size:16px; line-height:1; padding:0; flex-shrink:0; }
+  .toast.success { border-left:4px solid var(--green); }
+  .toast.error   { border-left:4px solid var(--red); }
+  .toast.warning { border-left:4px solid var(--yellow); }
+  .toast.info    { border-left:4px solid var(--blue); }
+  @keyframes toastIn  { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:none} }
+  @keyframes toastOut { from{opacity:1;transform:none} to{opacity:0;transform:translateX(30px)} }
+
+  /* ── PROGRESS MODAL ── */
+  .prog-step { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--gray2); }
+  .prog-step:last-child { border-bottom:none; }
+  .prog-step-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; background:var(--gray2); }
+  .prog-step-icon.done  { background:#E0FAF1; }
+  .prog-step-icon.doing { background:#EBF5FF; }
+  .prog-step-icon.spin  { background:#EBF5FF; animation:spin .8s linear infinite; }
+  .prog-step-label { flex:1; font-size:13px; font-weight:500; color:var(--navy); }
+  .prog-step-sub   { font-size:11px; color:var(--gray4); margin-top:2px; }
+  .prog-step-time  { font-size:12px; color:var(--gray4); }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  .prog-bar-outer { height:6px; background:var(--gray2); border-radius:3px; margin:14px 0 6px; overflow:hidden; }
+  .prog-bar-inner { height:100%; background:var(--green); border-radius:3px; transition:width .4s ease; }
+
+  /* ── NODE ROW STATUS TRANSITIONS ── */
+  .node-row.highlight { background:#f0fdf4; transition:background 1s; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--gray3); border-radius: 3px; }
+
+  /* modal overlay */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    z-index: 500; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,.25);
+    width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+  }
+  .modal-header {
+    padding: 18px 22px; border-bottom: 1px solid var(--gray2);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-weight: 700; font-size: 16px; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray4); line-height: 1; }
+  .modal-body { padding: 22px; }
+  .modal-footer { padding: 14px 22px; border-top: 1px solid var(--gray2); display: flex; gap: 8px; justify-content: flex-end; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 5px; display: block; }
+  .form-input {
+    width: 100%; padding: 8px 12px; border: 1px solid var(--gray3); border-radius: var(--radius);
+    font-size: 13px; outline: none; transition: border .15s;
+  }
+  .form-input:focus { border-color: var(--dark-green); }
+  .form-select { width: 100%; padding: 8px 12px; border: 1px solid var(--gray3); border-radius: var(--radius); font-size: 13px; outline: none; background: #fff; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#00684A"/><path d="M20 6c0 0-9 7.5-9 16a9 9 0 0018 0C29 13.5 20 6 20 6z" fill="#00ED64"/><path d="M20 6v28" stroke="#00684A" stroke-width="2"/></svg>
+    MongoDB Ops Manager
+  </div>
+  <div class="topbar-org" onclick="openModal('modal-org')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Org: <span>MongoDB Brazil</span>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="topbar-sep"></div>
+  <button class="topbar-btn" onclick="openModal('modal-deploy')">+ New Deployment</button>
+  <div class="topbar-notif" title="Alerts" onclick="showSection('alerts',document.getElementById('nav-alerts'))" style="cursor:pointer">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    <div class="topbar-notif-dot"></div>
+  </div>
+  <div class="topbar-avatar" title="Admin User" onclick="openModal('modal-profile')" style="cursor:pointer">A</div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-project" onclick="openModal('modal-project')">
+      <div class="sidebar-project-icon">P1</div>
+      <div>
+        <div class="sidebar-project-name">Production</div>
+        <div class="sidebar-project-org">MongoDB Brazil</div>
+      </div>
+      <div class="sidebar-project-caret">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Overview</div>
+      <div class="nav-item active" onclick="showSection('dashboard', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showSection('activity', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Activity Feed
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Deployments</div>
+      <div class="nav-item" onclick="showSection('deployments', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        All Clusters
+      </div>
+      <div class="nav-item" onclick="showSection('automation', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 18.66l-1.41 1.41M21 12h-2M5 12H3M19.07 19.07l-1.41-1.41M5.34 5.34L3.93 3.93"/><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>
+        Automation
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Monitoring</div>
+      <div class="nav-item" onclick="showSection('monitoring', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Metrics
+      </div>
+      <div class="nav-item" id="nav-alerts" onclick="showSection('alerts', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Alerts
+        <span class="badge">3</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Data Protection</div>
+      <div class="nav-item" onclick="showSection('backup', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Backup
+        <span class="badge warn">1</span>
+      </div>
+      <div class="nav-item" onclick="showSection('restore', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 15v4a2 2 0 002 2h14a2 2 0 002-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Restore
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Security</div>
+      <div class="nav-item" onclick="showSection('security-users', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Users
+      </div>
+      <div class="nav-item" onclick="showSection('security-roles', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Roles
+      </div>
+      <div class="nav-item" onclick="showSection('security-auth', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Authentication
+      </div>
+      <div class="nav-item" onclick="showSection('security-audit', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Audit Log
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Administration</div>
+      <div class="nav-item" onclick="showSection('admin-agents', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Agents
+      </div>
+      <div class="nav-item" onclick="showSection('admin-settings', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+        Project Settings
+      </div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="nav-item" onclick="showSection('admin-settings',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </div>
+      <div class="nav-item" onclick="window.open('https://www.mongodb.com/docs/ops-manager/current/','_blank')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Help & Docs
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: DASHBOARD                        -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-dashboard" class="section active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">Project: Production · Last refreshed just now</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="refreshDashboard()">↺ Refresh</button>
+          <button class="btn btn-primary" onclick="openModal('modal-deploy')">+ Add Deployment</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- Active alerts strip -->
+        <div class="alert-strip crit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DB3030" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div><span class="al-title">CRITICAL:</span> Disk utilization above 90% on rs-prod-01 / mongo-node-02</div>
+          <span class="al-time">2 min ago</span>
+          <button class="btn btn-secondary" style="padding:3px 10px;font-size:12px" onclick="showSection('alerts',document.querySelector('.nav-item:nth-child(2)'))">View Alert</button>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Clusters</div>
+            <div class="stat-value" id="stat-clusters">4</div>
+            <div class="stat-sub" id="stat-clusters-sub"><span class="stat-badge green">3 Healthy</span> &nbsp; <span class="stat-badge red">1 Warning</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Monitored Hosts</div>
+            <div class="stat-value" id="stat-hosts">10</div>
+            <div class="stat-sub"><span class="stat-badge green">Online</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Alerts</div>
+            <div class="stat-value" style="color:var(--red)" id="stat-warn">1</div>
+            <div class="stat-sub"><span class="stat-badge red">1 Critical</span> &nbsp; <span class="stat-badge yellow">2 Warning</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Backup Snapshots</div>
+            <div class="stat-value">142</div>
+            <div class="stat-sub"><span class="stat-badge green">All up-to-date</span></div>
+          </div>
+        </div>
+
+        <!-- Cluster cards — rendered from clusterStore -->
+        <div class="cluster-grid" id="dash-cluster-grid"></div>
+
+        <!-- Quick stats row -->
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Automation Agent Status</div></div>
+            <div class="card-body">
+              <table class="tbl">
+                <tr><td>mongo-node-01</td><td><span class="pill pill-green">Running</span></td><td style="color:var(--gray4);font-size:12px">v12.0.27</td></tr>
+                <tr><td>mongo-node-02</td><td><span class="pill pill-green">Running</span></td><td style="color:var(--gray4);font-size:12px">v12.0.27</td></tr>
+                <tr><td>mongo-node-03</td><td><span class="pill pill-green">Running</span></td><td style="color:var(--gray4);font-size:12px">v12.0.27</td></tr>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Backup Status</div></div>
+            <div class="card-body">
+              <table class="tbl">
+                <tr><td>rs-prod-01</td><td><span class="pill pill-green">Active</span></td><td style="color:var(--gray4);font-size:12px">2h ago</td></tr>
+                <tr><td>sharded-analytics</td><td><span class="pill pill-yellow">Pending</span></td><td style="color:var(--gray4);font-size:12px">4h ago</td></tr>
+                <tr><td>rs-staging</td><td><span class="pill pill-green">Active</span></td><td style="color:var(--gray4);font-size:12px">1h ago</td></tr>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Recent Activity</div></div>
+            <div class="card-body" style="font-size:13px">
+              <div style="padding:6px 0;border-bottom:1px solid var(--gray2)"><span style="color:var(--gray4);font-size:11px">10:42</span> &nbsp; User <b>admin</b> edited rs-prod-01</div>
+              <div style="padding:6px 0;border-bottom:1px solid var(--gray2)"><span style="color:var(--gray4);font-size:11px">09:15</span> &nbsp; Snapshot created for rs-prod-01</div>
+              <div style="padding:6px 0"><span style="color:var(--gray4);font-size:11px">08:30</span> &nbsp; Alert resolved: High connections</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- /DASHBOARD -->
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: ACTIVITY FEED (placeholder)      -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-activity" class="section">
+      <div class="page-header">
+        <div><div class="page-title">Activity Feed</div><div class="page-subtitle">All project events</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary">⬇ Export</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="card-body">
+            <table class="tbl">
+              <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Resource</th><th>Details</th></tr></thead>
+              <tbody>
+                <tr><td>2024-01-15 10:42</td><td>admin@mongodb-brazil.com</td><td>EDIT</td><td>rs-prod-01</td><td>Changed oplog size to 10GB</td></tr>
+                <tr><td>2024-01-15 09:15</td><td>System</td><td>SNAPSHOT</td><td>rs-prod-01</td><td>Automated snapshot completed (42GB)</td></tr>
+                <tr><td>2024-01-15 08:30</td><td>System</td><td>ALERT RESOLVED</td><td>rs-prod-01</td><td>High connections alert auto-resolved</td></tr>
+                <tr><td>2024-01-15 07:00</td><td>john.doe@mongodb-brazil.com</td><td>CREATE</td><td>sharded-analytics</td><td>Added shard: shard-03</td></tr>
+                <tr><td>2024-01-14 22:10</td><td>System</td><td>UPGRADE</td><td>rs-staging</td><td>MongoDB upgraded 6.0.11 → 6.0.12</td></tr>
+                <tr><td>2024-01-14 18:00</td><td>admin@mongodb-brazil.com</td><td>USER CREATE</td><td>Security</td><td>New user: app_readonly created</td></tr>
+                <tr><td>2024-01-14 14:20</td><td>admin@mongodb-brazil.com</td><td>BACKUP CONFIG</td><td>rs-prod-01</td><td>Retention policy updated to 30 days</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Remaining sections will be added in next phases -->
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: ALL CLUSTERS / DEPLOYMENTS       -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-deployments" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">All Clusters</div>
+          <div class="page-subtitle">5 deployments · Project: Production</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="openModal('modal-import')">⬆ Import</button>
+          <button class="btn btn-primary" onclick="openModal('modal-deploy')">+ New Deployment</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- Filter bar -->
+        <div style="display:flex;gap:10px;margin-bottom:18px;align-items:center">
+          <input class="form-input" style="width:260px" placeholder="🔍  Search clusters..."/>
+          <select class="form-select" style="width:160px">
+            <option>All Types</option>
+            <option>Replica Set</option>
+            <option>Sharded Cluster</option>
+            <option>Standalone</option>
+          </select>
+          <select class="form-select" style="width:160px">
+            <option>All Versions</option>
+            <option>7.0.x</option>
+            <option>6.0.x</option>
+          </select>
+          <select class="form-select" style="width:160px">
+            <option>All Statuses</option>
+            <option>Healthy</option>
+            <option>Warning</option>
+            <option>Critical</option>
+          </select>
+        </div>
+
+        <div id="deployments-list"><!-- rendered by JS --></div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: AUTOMATION                        -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-automation" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Automation</div>
+          <div class="page-subtitle">Manage deployment configurations and rolling changes</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="showSection('automation',null);toast('Pending changes','2 changes awaiting review below.','info')">📋 Review Changes</button>
+          <button class="btn btn-primary" onclick="openModal('modal-deploy')">+ New Deployment</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat-card">
+            <div class="stat-label">Automation Agents</div>
+            <div class="stat-value">18</div>
+            <div class="stat-sub"><span class="stat-badge green">18 Active</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pending Changes</div>
+            <div class="stat-value">2</div>
+            <div class="stat-sub"><span class="stat-badge yellow">Awaiting Review</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Last Deployment</div>
+            <div class="stat-value" style="font-size:18px">2h ago</div>
+            <div class="stat-sub">rs-prod-01 oplog resize</div>
+          </div>
+        </div>
+
+        <!-- Pending changes -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <div class="card-title">⏳ Pending Changes (requires review)</div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Cluster</th><th>Change Type</th><th>Description</th><th>Requested By</th><th>Time</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><b>rs-prod-01</b></td>
+                  <td><span class="pill pill-blue">Version Upgrade</span></td>
+                  <td>7.0.5 → 7.0.6 (rolling upgrade)</td>
+                  <td>admin@mongodb-brazil.com</td>
+                  <td>30 min ago</td>
+                  <td style="display:flex;gap:6px;padding:10px 0">
+                    <button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="applyPendingChange(this,'rs-prod-01','7.0.5 → 7.0.6 rolling upgrade')">▶ Apply</button>
+                    <button class="btn btn-danger" style="padding:4px 10px;font-size:12px" onclick="discardPendingChange(this)">✕ Discard</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>sharded-analytics</b></td>
+                  <td><span class="pill pill-yellow">Config Change</span></td>
+                  <td>WiredTiger cache 4GB → 8GB</td>
+                  <td>john.doe@mongodb-brazil.com</td>
+                  <td>1h ago</td>
+                  <td style="display:flex;gap:6px;padding:10px 0">
+                    <button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="applyPendingChange(this,'sharded-analytics','WiredTiger cache 4GB → 8GB')">▶ Apply</button>
+                    <button class="btn btn-danger" style="padding:4px 10px;font-size:12px" onclick="discardPendingChange(this)">✕ Discard</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Automation history -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">Automation History</div></div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Time</th><th>Cluster</th><th>Change</th><th>Status</th><th>Duration</th><th>Applied By</th></tr></thead>
+              <tbody>
+                <tr><td>2024-01-15 10:42</td><td>rs-prod-01</td><td>Oplog size 5GB → 10GB</td><td><span class="pill pill-green">✓ Success</span></td><td>4m 12s</td><td>admin</td></tr>
+                <tr><td>2024-01-14 22:10</td><td>rs-staging</td><td>Version upgrade 6.0.11 → 6.0.12</td><td><span class="pill pill-green">✓ Success</span></td><td>12m 30s</td><td>System</td></tr>
+                <tr><td>2024-01-14 14:00</td><td>sharded-analytics</td><td>Added shard shard-02</td><td><span class="pill pill-green">✓ Success</span></td><td>8m 05s</td><td>john.doe</td></tr>
+                <tr><td>2024-01-13 09:00</td><td>rs-prod-01</td><td>TLS certificate rotation</td><td><span class="pill pill-green">✓ Success</span></td><td>6m 18s</td><td>admin</td></tr>
+                <tr><td>2024-01-12 16:30</td><td>rs-prod-01</td><td>Add hidden secondary node</td><td><span class="pill pill-red">✗ Failed</span></td><td>2m 01s</td><td>admin</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: MONITORING                        -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-monitoring" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Metrics</div>
+          <div class="page-subtitle" id="monitoring-subtitle">Real-time monitoring · rs-prod-01</div>
+        </div>
+        <div class="page-header-actions">
+          <select class="form-select" style="width:200px" id="monitoring-cluster-sel" onchange="switchMonitoringCluster(this.value)"></select>
+          <select class="form-select" style="width:140px" id="metrics-range" onchange="updateCharts()">
+            <option value="1h">Last 1 hour</option>
+            <option value="8h">Last 8 hours</option>
+            <option value="24h" selected>Last 24 hours</option>
+            <option value="7d">Last 7 days</option>
+          </select>
+          <button class="btn btn-secondary" onclick="updateCharts()">↺ Refresh</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- Node selector tabs (rendered dynamically per selected cluster) -->
+        <div id="monitoring-node-tabs" style="display:flex;gap:0;margin-bottom:20px;border:1px solid var(--gray2);border-radius:var(--radius);overflow:hidden;width:fit-content;background:#fff;flex-wrap:wrap"></div>
+
+        <!-- Live stat pills -->
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+          <div class="stat-pill">🔗 Connections: <b id="live-conn">342</b></div>
+          <div class="stat-pill">📖 Reads/s: <b id="live-reads">1,240</b></div>
+          <div class="stat-pill">✏️ Writes/s: <b id="live-writes">387</b></div>
+          <div class="stat-pill">💾 Cache Hit: <b id="live-cache">97.3%</b></div>
+          <div class="stat-pill">📦 Data Size: <b>284 GB</b></div>
+          <div class="stat-pill">📝 Oplog Window: <b>48h</b></div>
+          <div class="stat-pill">🔄 Repl Lag: <b id="live-lag">0.8s</b></div>
+          <div class="stat-pill">⬆ Net In: <b id="live-netin">12.4 MB/s</b></div>
+          <div class="stat-pill">⬇ Net Out: <b id="live-netout">8.1 MB/s</b></div>
+        </div>
+
+        <!-- Charts row 1 -->
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">CPU Utilization (%)</div>
+              <span style="margin-left:auto;font-size:12px;color:var(--gray4)">per node</span>
+            </div>
+            <div class="card-body"><div class="chart-wrap"><canvas id="chart-cpu"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Memory Usage (GB)</div>
+              <span style="margin-left:auto;font-size:12px;color:var(--gray4)">Resident + Virtual</span>
+            </div>
+            <div class="card-body"><div class="chart-wrap"><canvas id="chart-mem"></canvas></div></div>
+          </div>
+        </div>
+
+        <!-- Charts row 2 -->
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Operations / sec</div>
+              <span style="margin-left:auto;font-size:12px;color:var(--gray4)">insert · query · update · delete</span>
+            </div>
+            <div class="card-body"><div class="chart-wrap"><canvas id="chart-ops"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Connections</div>
+              <span style="margin-left:auto;font-size:12px;color:var(--gray4)">current / available</span>
+            </div>
+            <div class="card-body"><div class="chart-wrap"><canvas id="chart-conn"></canvas></div></div>
+          </div>
+        </div>
+
+        <!-- Charts row 3 -->
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Disk IOPS</div>
+              <span style="margin-left:auto;font-size:12px;color:var(--gray4)">read · write</span>
+            </div>
+            <div class="card-body"><div class="chart-wrap"><canvas id="chart-iops"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Network I/O (MB/s)</div>
+              <span style="margin-left:auto;font-size:12px;color:var(--gray4)">in · out</span>
+            </div>
+            <div class="card-body"><div class="chart-wrap"><canvas id="chart-net"></canvas></div></div>
+          </div>
+        </div>
+
+        <!-- Charts row 4 -->
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Replication Lag (sec)</div>
+              <span style="margin-left:auto;font-size:12px;color:var(--gray4)">secondaries</span>
+            </div>
+            <div class="card-body"><div class="chart-wrap"><canvas id="chart-lag"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">WiredTiger Cache (GB)</div>
+              <span style="margin-left:auto;font-size:12px;color:var(--gray4)">used · dirty</span>
+            </div>
+            <div class="card-body"><div class="chart-wrap"><canvas id="chart-cache"></canvas></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: ALERTS                            -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-alerts" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Alerts</div>
+          <div class="page-subtitle">3 open alerts · Project: Production</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="showAlertTab('config',document.querySelectorAll('.alert-tab')[2])">⚙ Alert Settings</button>
+          <button class="btn btn-primary" onclick="openModal('modal-new-alert')">+ Add Alert Config</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- Alert tabs -->
+        <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--gray2)">
+          <button class="alert-tab active" onclick="showAlertTab('open',this)">Open Alerts <span class="badge" style="position:static;display:inline-block">3</span></button>
+          <button class="alert-tab" onclick="showAlertTab('closed',this)">Closed (28)</button>
+          <button class="alert-tab" onclick="showAlertTab('config',this)">Alert Settings (12)</button>
+        </div>
+
+        <!-- Open alerts -->
+        <div id="alert-tab-open" class="alert-tab-content">
+          <div id="open-alerts-list"></div>
+        </div>
+
+        <!-- Closed alerts -->
+        <div id="alert-tab-closed" class="alert-tab-content" style="display:none">
+          <div class="card"><div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Severity</th><th>Alert</th><th>Target</th><th>Opened</th><th>Closed</th><th>Duration</th></tr></thead>
+              <tbody>
+                <tr><td><span class="pill pill-red">Critical</span></td><td>Host Down</td><td>mongo-node-02</td><td>Jan 14 03:12</td><td>Jan 14 03:18</td><td>6m</td></tr>
+                <tr><td><span class="pill pill-yellow">Warning</span></td><td>High Connections (&gt;500)</td><td>rs-prod-01</td><td>Jan 13 22:00</td><td>Jan 13 22:45</td><td>45m</td></tr>
+                <tr><td><span class="pill pill-yellow">Warning</span></td><td>Replication Lag &gt; 10s</td><td>mongo-node-03</td><td>Jan 13 14:20</td><td>Jan 13 14:35</td><td>15m</td></tr>
+                <tr><td><span class="pill pill-blue">Info</span></td><td>Election occurred</td><td>rs-prod-01</td><td>Jan 12 09:00</td><td>Jan 12 09:01</td><td>1m</td></tr>
+              </tbody>
+            </table>
+          </div></div>
+        </div>
+
+        <!-- Alert config -->
+        <div id="alert-tab-config" class="alert-tab-content" style="display:none">
+          <div class="card"><div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Alert Condition</th><th>Target</th><th>Threshold</th><th>Notify Via</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="alert-config-list"></tbody>
+            </table>
+          </div></div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: BACKUP                            -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-backup" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Backup</div>
+          <div class="page-subtitle">Continuous backup · 3 clusters protected</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="openModal('modal-backup-policy')">⚙ Policies</button>
+          <button class="btn btn-primary" onclick="takeManualSnapshot()">📸 Take Snapshot Now</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- Backup status cards -->
+        <div class="stat-grid" style="margin-bottom:20px">
+          <div class="stat-card">
+            <div class="stat-label">Protected Clusters</div>
+            <div class="stat-value">3</div>
+            <div class="stat-sub"><span class="stat-badge green">All active</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Snapshots</div>
+            <div class="stat-value" id="total-snapshots">142</div>
+            <div class="stat-sub">across all clusters</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Storage Used</div>
+            <div class="stat-value">1.8 TB</div>
+            <div class="stat-sub"><span class="stat-badge green">Within quota</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Oplog Coverage</div>
+            <div class="stat-value">48h</div>
+            <div class="stat-sub"><span class="stat-badge green">PIT Recovery ready</span></div>
+          </div>
+        </div>
+
+        <!-- Cluster backup status -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><div class="card-title">Cluster Backup Status</div></div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Cluster</th><th>Status</th><th>Last Snapshot</th><th>Next Snapshot</th><th>Retention</th><th>Storage</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><b>rs-prod-01</b> <span class="cluster-type-badge badge-rs" style="font-size:10px">RS</span></td>
+                  <td><span class="pill pill-green">● Active</span></td>
+                  <td>2h ago (42 GB)</td>
+                  <td>in 4h</td>
+                  <td>30 days / 12 months</td>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar-wrap" style="width:80px"><div class="progress-bar" style="width:58%"></div></div>580 GB</div></td>
+                  <td style="display:flex;gap:4px;padding:8px 0">
+                    <button class="icon-btn" onclick="takeSnapshotFor('rs-prod-01')">📸 Snapshot</button>
+                    <button class="icon-btn" onclick="openRestoreFlow('rs-prod-01')">↩ Restore</button>
+                    <button class="icon-btn" onclick="openModal('modal-backup-policy')">⚙</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>sharded-analytics</b> <span class="cluster-type-badge badge-sharded" style="font-size:10px">Sharded</span></td>
+                  <td><span class="pill pill-yellow">● Pending</span></td>
+                  <td>4h ago (218 GB)</td>
+                  <td>in 2h</td>
+                  <td>14 days / 6 months</td>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar-wrap" style="width:80px"><div class="progress-bar warn" style="width:76%"></div></div>1.1 TB</div></td>
+                  <td style="display:flex;gap:4px;padding:8px 0">
+                    <button class="icon-btn" onclick="takeSnapshotFor('sharded-analytics')">📸 Snapshot</button>
+                    <button class="icon-btn" onclick="openRestoreFlow('sharded-analytics')">↩ Restore</button>
+                    <button class="icon-btn" onclick="openModal('modal-backup-policy')">⚙</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>rs-staging</b> <span class="cluster-type-badge badge-rs" style="font-size:10px">RS</span></td>
+                  <td><span class="pill pill-green">● Active</span></td>
+                  <td>1h ago (18 GB)</td>
+                  <td>in 5h</td>
+                  <td>7 days</td>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar-wrap" style="width:80px"><div class="progress-bar" style="width:18%"></div></div>126 GB</div></td>
+                  <td style="display:flex;gap:4px;padding:8px 0">
+                    <button class="icon-btn" onclick="takeSnapshotFor('rs-staging')">📸 Snapshot</button>
+                    <button class="icon-btn" onclick="openRestoreFlow('rs-staging')">↩ Restore</button>
+                    <button class="icon-btn" onclick="openModal('modal-backup-policy')">⚙</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Snapshot list -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Snapshots</div>
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <select class="form-select" style="width:180px" onchange="filterSnapshots(this.value)">
+                <option value="all">All Clusters</option>
+                <option value="rs-prod-01">rs-prod-01</option>
+                <option value="sharded-analytics">sharded-analytics</option>
+                <option value="rs-staging">rs-staging</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Snapshot ID</th><th>Cluster</th><th>Type</th><th>Created</th><th>Size</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="snapshot-list"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: RESTORE                           -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-restore" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Restore</div>
+          <div class="page-subtitle">Point-in-time & snapshot restore</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" onclick="openRestoreFlow('rs-prod-01')">↩ New Restore Job</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- Restore Jobs -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><div class="card-title">Restore Jobs</div></div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Job ID</th><th>Cluster</th><th>Type</th><th>Restore Point</th><th>Target</th><th>Status</th><th>Started</th><th>Actions</th></tr></thead>
+              <tbody id="restore-jobs-list">
+                <tr>
+                  <td><code>rst-00142</code></td>
+                  <td>rs-prod-01</td>
+                  <td><span class="pill pill-blue">PIT</span></td>
+                  <td>2024-01-14 09:00:00</td>
+                  <td>rs-staging</td>
+                  <td><span class="pill pill-green">✓ Completed</span></td>
+                  <td>2024-01-14 09:12</td>
+                  <td><button class="icon-btn" onclick="toast('Download ready','Restore package ready for download.','info')">⬇ Download</button></td>
+                </tr>
+                <tr>
+                  <td><code>rst-00141</code></td>
+                  <td>sharded-analytics</td>
+                  <td><span class="pill pill-gray">Snapshot</span></td>
+                  <td>2024-01-13 18:00:00</td>
+                  <td>Automated restore</td>
+                  <td><span class="pill pill-green">✓ Completed</span></td>
+                  <td>2024-01-13 18:45</td>
+                  <td><button class="icon-btn" onclick="toast('Download ready','Restore package ready for download.','info')">⬇ Download</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PIT selector -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">🕐 Point-in-Time Recovery</div></div>
+          <div class="card-body">
+            <div class="grid-2" style="margin-bottom:0">
+              <div>
+                <div class="form-group">
+                  <label class="form-label">Source Cluster</label>
+                  <select class="form-select" id="pit-cluster">
+                    <option>rs-prod-01</option><option>sharded-analytics</option><option>rs-staging</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Restore Point (UTC)</label>
+                  <input class="form-input" type="datetime-local" id="pit-datetime" value="2024-01-15T09:00"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Restore Target</label>
+                  <select class="form-select" id="pit-target">
+                    <option>Restore to same cluster</option>
+                    <option>Restore to rs-staging</option>
+                    <option>Download as tar.gz</option>
+                    <option>Restore to new cluster</option>
+                  </select>
+                </div>
+                <div style="background:#EBF5FF;border:1px solid #93C5FD;border-radius:6px;padding:12px;font-size:13px;color:#1E40AF;margin-bottom:16px">
+                  ℹ️ Oplog coverage: <b>Jan 13 00:00 → Jan 15 10:42 UTC</b>. Any point in this window is recoverable.
+                </div>
+                <button class="btn btn-primary" onclick="startPITRestore()">↩ Start Point-in-Time Restore</button>
+              </div>
+              <div>
+                <div class="form-label" style="margin-bottom:10px">Oplog Coverage Timeline</div>
+                <div style="background:var(--gray1);border-radius:6px;padding:16px;height:180px;display:flex;flex-direction:column;justify-content:center">
+                  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray4);margin-bottom:6px">
+                    <span>Jan 13 00:00</span><span>Jan 14 00:00</span><span>Jan 15 10:42</span>
+                  </div>
+                  <div style="height:20px;background:linear-gradient(90deg,#00ED64 0%,#00b84a 100%);border-radius:4px;position:relative">
+                    <div style="position:absolute;right:0;top:-20px;font-size:10px;color:var(--dark-green);font-weight:700">NOW</div>
+                    <!-- snapshot markers -->
+                    <div style="position:absolute;left:20%;top:0;bottom:0;width:2px;background:#fff;opacity:.6"></div>
+                    <div style="position:absolute;left:40%;top:0;bottom:0;width:2px;background:#fff;opacity:.6"></div>
+                    <div style="position:absolute;left:62%;top:0;bottom:0;width:2px;background:#fff;opacity:.6"></div>
+                    <div style="position:absolute;left:80%;top:0;bottom:0;width:2px;background:#fff;opacity:.6"></div>
+                  </div>
+                  <div style="font-size:11px;color:var(--gray4);margin-top:8px">▲ Snapshot markers (white lines)</div>
+                  <div style="margin-top:14px;font-size:12px;color:var(--gray5)">
+                    <b>4 snapshots</b> available in this window<br/>
+                    Last snapshot: <b>2h ago · 42 GB</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: SECURITY — USERS                  -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-security-users" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Database Users</div>
+          <div class="page-subtitle">Manage authentication & access</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" onclick="openModal('modal-new-user')">+ Add Database User</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Users</div>
+            <input class="form-input" style="width:240px;margin-left:auto" placeholder="🔍 Search users..." oninput="filterUsers(this.value)"/>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Username</th><th>Auth Method</th><th>Roles</th><th>Database</th><th>Created</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="users-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: SECURITY — ROLES                  -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-security-roles" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Custom Roles</div>
+          <div class="page-subtitle">Role-based access control (RBAC)</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" onclick="openModal('modal-new-role')">+ Add Custom Role</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><div class="card-title">Custom Roles</div></div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Role Name</th><th>Privileges</th><th>Inherits From</th><th>Assigned Users</th><th>Actions</th></tr></thead>
+              <tbody id="roles-list"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Built-in Roles</div></div>
+          <div class="card-body">
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <span class="pill pill-blue">read</span><span class="pill pill-blue">readWrite</span>
+              <span class="pill pill-blue">dbAdmin</span><span class="pill pill-blue">dbOwner</span>
+              <span class="pill pill-blue">userAdmin</span><span class="pill pill-yellow">clusterAdmin</span>
+              <span class="pill pill-yellow">clusterManager</span><span class="pill pill-yellow">clusterMonitor</span>
+              <span class="pill pill-yellow">hostManager</span><span class="pill pill-red">root</span>
+              <span class="pill pill-blue">backup</span><span class="pill pill-blue">restore</span>
+              <span class="pill pill-blue">readAnyDatabase</span><span class="pill pill-blue">readWriteAnyDatabase</span>
+              <span class="pill pill-red">userAdminAnyDatabase</span><span class="pill pill-red">dbAdminAnyDatabase</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: SECURITY — AUTHENTICATION         -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-security-auth" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Authentication & Encryption</div>
+          <div class="page-subtitle">Cluster-wide security mechanisms</div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="grid-2">
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔐 Authentication Mechanisms</div></div>
+            <div class="card-body">
+              <div class="auth-row">
+                <div><b>SCRAM-SHA-256</b><div style="font-size:12px;color:var(--gray4)">Default password authentication</div></div>
+                <label class="switch"><input type="checkbox" checked onchange="toggleAuth('SCRAM-SHA-256',this.checked)"><span class="slider"></span></label>
+              </div>
+              <div class="auth-row">
+                <div><b>SCRAM-SHA-1</b><div style="font-size:12px;color:var(--gray4)">Legacy password authentication</div></div>
+                <label class="switch"><input type="checkbox" onchange="toggleAuth('SCRAM-SHA-1',this.checked)"><span class="slider"></span></label>
+              </div>
+              <div class="auth-row">
+                <div><b>x.509 Certificates</b><div style="font-size:12px;color:var(--gray4)">Client certificate authentication</div></div>
+                <label class="switch"><input type="checkbox" checked onchange="toggleAuth('x.509',this.checked)"><span class="slider"></span></label>
+              </div>
+              <div class="auth-row">
+                <div><b>LDAP</b><div style="font-size:12px;color:var(--gray4)">External directory authentication</div></div>
+                <label class="switch"><input type="checkbox" onchange="toggleAuth('LDAP',this.checked);if(this.checked)openModal('modal-ldap')"><span class="slider"></span></label>
+              </div>
+              <div class="auth-row" style="border-bottom:none">
+                <div><b>Kerberos (GSSAPI)</b><div style="font-size:12px;color:var(--gray4)">Enterprise SSO authentication</div></div>
+                <label class="switch"><input type="checkbox" onchange="toggleAuth('Kerberos',this.checked)"><span class="slider"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔒 Encryption</div></div>
+            <div class="card-body">
+              <div class="auth-row">
+                <div><b>TLS/SSL (in-transit)</b><div style="font-size:12px;color:var(--gray4)">Encrypt client & intra-cluster traffic</div></div>
+                <label class="switch"><input type="checkbox" checked onchange="toggleAuth('TLS',this.checked)"><span class="slider"></span></label>
+              </div>
+              <div class="auth-row">
+                <div><b>Encryption at Rest</b><div style="font-size:12px;color:var(--gray4)">WiredTiger AES-256 encryption</div></div>
+                <label class="switch"><input type="checkbox" checked onchange="toggleAuth('Encryption at Rest',this.checked)"><span class="slider"></span></label>
+              </div>
+              <div class="auth-row">
+                <div><b>KMIP Key Management</b><div style="font-size:12px;color:var(--gray4)">External key management server</div></div>
+                <label class="switch"><input type="checkbox" onchange="toggleAuth('KMIP',this.checked)"><span class="slider"></span></label>
+              </div>
+              <div class="auth-row" style="border-bottom:none">
+                <div><b>Client-Side Field Level Encryption</b><div style="font-size:12px;color:var(--gray4)">Encrypt specific fields automatically</div></div>
+                <label class="switch"><input type="checkbox" onchange="toggleAuth('CSFLE',this.checked)"><span class="slider"></span></label>
+              </div>
+              <div style="margin-top:16px">
+                <button class="btn btn-secondary" onclick="rotateCerts()">🔄 Rotate TLS Certificates</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">🌐 IP Access List</div>
+            <button class="btn btn-secondary" style="margin-left:auto;font-size:12px;padding:5px 10px" onclick="openModal('modal-ip')">+ Add IP / CIDR</button>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>IP / CIDR</th><th>Comment</th><th>Added</th><th>Actions</th></tr></thead>
+              <tbody id="ip-list">
+                <tr><td><code>10.0.0.0/16</code></td><td>Internal VPC</td><td>Jan 01</td><td><button class="icon-btn" onclick="removeIP(this)">🗑 Remove</button></td></tr>
+                <tr><td><code>203.0.113.42/32</code></td><td>Office VPN gateway</td><td>Jan 05</td><td><button class="icon-btn" onclick="removeIP(this)">🗑 Remove</button></td></tr>
+                <tr><td><code>198.51.100.0/24</code></td><td>Monitoring subnet</td><td>Jan 10</td><td><button class="icon-btn" onclick="removeIP(this)">🗑 Remove</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: SECURITY — AUDIT LOG              -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-security-audit" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Audit Log</div>
+          <div class="page-subtitle">Security & data access events</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="toast('Export started','Audit log export (CSV) is being prepared.','info')">⬇ Export CSV</button>
+          <button class="btn btn-secondary" onclick="openModal('modal-audit-config')">⚙ Configure Auditing</button>
+        </div>
+      </div>
+      <div class="content">
+        <div style="display:flex;gap:10px;margin-bottom:18px">
+          <input class="form-input" style="width:260px" placeholder="🔍 Filter by user, action, source..." oninput="filterAudit(this.value)"/>
+          <select class="form-select" style="width:180px" onchange="filterAuditType(this.value)">
+            <option value="all">All Event Types</option>
+            <option value="authenticate">Authentication</option>
+            <option value="authCheck">Authorization</option>
+            <option value="createUser">User Management</option>
+            <option value="dropCollection">DDL Operations</option>
+          </select>
+        </div>
+        <div class="card"><div class="card-body" style="padding:0">
+          <table class="tbl">
+            <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Resource</th><th>Source IP</th><th>Result</th></tr></thead>
+            <tbody id="audit-list"></tbody>
+          </table>
+        </div></div>
+      </div>
+    </div>
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: AGENTS                            -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-admin-agents" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Automation Agents</div>
+          <div class="page-subtitle">18 agents registered · All hosts</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="toast('Download started','mongodb-mms-automation-agent-12.0.28.tar.gz','info')">⬇ Download Agent</button>
+          <button class="btn btn-secondary" onclick="openModal('modal-agent-logs')">📄 View Logs</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+          <div class="stat-card"><div class="stat-label">Total Agents</div><div class="stat-value">18</div></div>
+          <div class="stat-card"><div class="stat-label">Running</div><div class="stat-value" style="color:var(--dark-green)">18</div></div>
+          <div class="stat-card"><div class="stat-label">Agent Version</div><div class="stat-value" style="font-size:18px">12.0.27</div></div>
+          <div class="stat-card"><div class="stat-label">Latest Available</div><div class="stat-value" style="font-size:18px">12.0.28</div><div class="stat-sub"><span class="stat-badge yellow">Update available</span></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Agent List</div>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button class="btn btn-secondary" style="font-size:12px;padding:5px 10px" onclick="upgradeAllAgents()">⬆ Upgrade All</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Host</th><th>Status</th><th>Version</th><th>Type</th><th>Last Ping</th><th>Cluster</th><th>Actions</th></tr></thead>
+              <tbody id="agents-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="section-admin-settings" class="section">
+      <div class="page-header"><div><div class="page-title">Project Settings</div><div class="page-subtitle">Configurações gerais</div></div></div>
+      <div class="content"><div class="card"><div class="card-body" style="padding:24px">
+        <div class="form-group"><label class="form-label">Project Name</label><input class="form-input" value="Production"/></div>
+        <div class="form-group"><label class="form-label">Organization</label><input class="form-input" value="MongoDB Brazil" readonly/></div>
+        <div class="form-group"><label class="form-label">Default MongoDB Version</label>
+          <select class="form-select"><option>7.0.5</option><option>6.0.12</option><option>5.0.24</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="toast('Settings saved','Project settings updated successfully.','success')">Save Changes</button>
+      </div></div></div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ══════════ MODAL: New Deployment ══════════ -->
+<div class="modal-overlay" id="modal-deploy">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Deployment</div>
+      <button class="modal-close" onclick="closeModal('modal-deploy')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Deployment Type</label>
+        <select class="form-select" id="new-type" onchange="toggleMembersField(this.value)">
+          <option>Replica Set</option><option>Sharded Cluster</option><option>Standalone</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cluster Name</label>
+        <input class="form-input" id="new-name" placeholder="e.g. rs-prod-02"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">MongoDB Version</label>
+        <select class="form-select" id="new-version">
+          <option>7.0.5</option><option>6.0.12</option><option>5.0.24</option>
+        </select>
+      </div>
+      <div class="form-group" id="members-field">
+        <label class="form-label">Number of Members</label>
+        <select class="form-select" id="new-members">
+          <option value="3">3 (Recommended)</option><option value="5">5</option><option value="7">7</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data Directory</label>
+        <input class="form-input" value="/data/db"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Port</label>
+        <input class="form-input" id="new-port" value="27017"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-deploy')">Cancel</button>
+      <button class="btn btn-primary" onclick="deployNewCluster()">🚀 Deploy</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ══════════ MODAL: Progress ══════════ -->
+<div class="modal-overlay" id="modal-progress">
+  <div class="modal" style="width:520px">
+    <div class="modal-header">
+      <div class="modal-title" id="prog-title">Processing…</div>
+    </div>
+    <div class="modal-body">
+      <div class="prog-bar-outer"><div class="prog-bar-inner" id="prog-bar" style="width:0%"></div></div>
+      <div id="prog-status" style="font-size:12px;color:var(--gray4);margin-bottom:14px">Initializing…</div>
+      <div id="prog-steps"></div>
+    </div>
+    <div class="modal-footer" id="prog-footer" style="display:none">
+      <button class="btn btn-primary" onclick="closeModal('modal-progress')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Organization Switcher ══════════ -->
+<div class="modal-overlay" id="modal-org">
+  <div class="modal" style="width:400px">
+    <div class="modal-header"><div class="modal-title">🏢 Switch Organization</div>
+      <button class="modal-close" onclick="closeModal('modal-org')">×</button></div>
+    <div class="modal-body" style="padding:0">
+      <div class="org-item" onclick="switchOrg('MongoDB Brazil')"><b>MongoDB Brazil</b><div style="font-size:12px;color:var(--gray4)">4 projects · 18 hosts</div></div>
+      <div class="org-item" onclick="switchOrg('MongoDB Brazil (Dev)')"><b>MongoDB Brazil (Dev)</b><div style="font-size:12px;color:var(--gray4)">2 projects · 5 hosts</div></div>
+      <div class="org-item" onclick="switchOrg('MongoDB Financial')"><b>MongoDB Financial</b><div style="font-size:12px;color:var(--gray4)">1 project · 9 hosts</div></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-org')">Cancel</button></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Project Switcher ══════════ -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal" style="width:400px">
+    <div class="modal-header"><div class="modal-title">📁 Switch Project</div>
+      <button class="modal-close" onclick="closeModal('modal-project')">×</button></div>
+    <div class="modal-body" style="padding:0">
+      <div class="org-item" onclick="switchProject('Production')"><b>Production</b><div style="font-size:12px;color:var(--gray4)">4 clusters · 10 hosts</div></div>
+      <div class="org-item" onclick="switchProject('Staging')"><b>Staging</b><div style="font-size:12px;color:var(--gray4)">2 clusters · 4 hosts</div></div>
+      <div class="org-item" onclick="switchProject('Data Science')"><b>Data Science</b><div style="font-size:12px;color:var(--gray4)">1 cluster · 4 hosts</div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-project')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-project');toast('New project','Project creation wizard opened.','info')">+ New Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: User Profile ══════════ -->
+<div class="modal-overlay" id="modal-profile">
+  <div class="modal" style="width:360px">
+    <div class="modal-header"><div class="modal-title">👤 Account</div>
+      <button class="modal-close" onclick="closeModal('modal-profile')">×</button></div>
+    <div class="modal-body" style="padding:0">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--gray2);display:flex;align-items:center;gap:12px">
+        <div class="topbar-avatar" style="width:44px;height:44px;font-size:18px">A</div>
+        <div><b>Admin User</b><div style="font-size:12px;color:var(--gray4)">admin@mongodb-brazil.com · Org Owner</div></div>
+      </div>
+      <div class="org-item" onclick="closeModal('modal-profile');showSection('admin-settings',null)">⚙ Account Settings</div>
+      <div class="org-item" onclick="closeModal('modal-profile');toast('API Keys','Showing your personal API keys.','info')">🔑 API Keys</div>
+      <div class="org-item" onclick="closeModal('modal-profile');toast('2FA','Two-factor authentication is enabled.','success')">🔒 Two-Factor Auth</div>
+      <div class="org-item" onclick="closeModal('modal-profile');toast('Signed out','You have been logged out (demo).','info')" style="color:var(--red)">⏻ Sign Out</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Import Deployment ══════════ -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal" style="width:460px">
+    <div class="modal-header"><div class="modal-title">⬆ Import Existing Deployment</div>
+      <button class="modal-close" onclick="closeModal('modal-import')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Seed Hostname:Port</label><input class="form-input" id="imp-host" placeholder="existing-mongo.mongodb-brazil.internal:27017"/></div>
+      <div class="form-group"><label class="form-label">Admin Username</label><input class="form-input" placeholder="admin"/></div>
+      <div class="form-group"><label class="form-label">Admin Password</label><input class="form-input" type="password" placeholder="••••••••"/></div>
+      <div style="background:#EBF5FF;border:1px solid #93C5FD;border-radius:6px;padding:12px;font-size:13px;color:#1E40AF">
+        ℹ️ Ops Manager will discover all members of the replica set/sharded cluster automatically.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-import')">Cancel</button>
+      <button class="btn btn-primary" onclick="importDeployment()">⬆ Import & Discover</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Agent Logs ══════════ -->
+<div class="modal-overlay" id="modal-agent-logs">
+  <div class="modal" style="width:640px">
+    <div class="modal-header"><div class="modal-title">📄 Automation Agent Logs</div>
+      <button class="modal-close" onclick="closeModal('modal-agent-logs')">×</button></div>
+    <div class="modal-body">
+      <pre style="background:#001E2B;color:#C1FAD9;padding:16px;border-radius:6px;font-size:12px;line-height:1.6;overflow-x:auto;max-height:340px">
+[2024-01-15T10:42:18Z] [INFO]  Agent v12.0.27 starting up
+[2024-01-15T10:42:18Z] [INFO]  Connecting to Ops Manager at https://opsmgr.mongodb-brazil.internal:8443
+[2024-01-15T10:42:19Z] [INFO]  Successfully registered with group 5f3a...c21
+[2024-01-15T10:42:19Z] [INFO]  Received automation config (version 142)
+[2024-01-15T10:42:20Z] [INFO]  Reconciling desired state for rs-prod-01
+[2024-01-15T10:42:21Z] [INFO]  mongod (pid 14322) is healthy on port 27017
+[2024-01-15T10:42:22Z] [INFO]  Reported metrics to Monitoring backend
+[2024-01-15T10:43:00Z] [INFO]  Heartbeat OK (rtt 4ms)
+[2024-01-15T10:44:00Z] [WARN]  Disk usage on /data/db at 91% (threshold 90%)
+[2024-01-15T10:44:01Z] [INFO]  Raised alert: DISK_SPACE_PERCENT_USED
+[2024-01-15T10:45:00Z] [INFO]  Heartbeat OK (rtt 3ms)</pre>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-agent-logs')">Close</button>
+      <button class="btn btn-primary" onclick="toast('Download started','Full agent log (automation-agent.log) downloading.','info')">⬇ Download Full Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: New Database User ══════════ -->
+<div class="modal-overlay" id="modal-new-user">
+  <div class="modal" style="width:480px">
+    <div class="modal-header"><div class="modal-title">+ Add Database User</div>
+      <button class="modal-close" onclick="closeModal('modal-new-user')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="nu-name" placeholder="e.g. app_service"/></div>
+      <div class="form-group"><label class="form-label">Authentication Method</label>
+        <select class="form-select" id="nu-auth"><option>SCRAM-SHA-256</option><option>x.509 Certificate</option><option>LDAP</option><option>Kerberos</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" placeholder="••••••••••" value="autogenerated"/></div>
+      <div class="form-group"><label class="form-label">Authentication Database</label>
+        <select class="form-select"><option>admin</option><option>analytics</option><option>app_db</option></select></div>
+      <div class="form-group"><label class="form-label">Roles</label>
+        <select class="form-select" id="nu-role"><option>readWrite@app_db</option><option>read@analytics</option><option>dbAdmin@admin</option><option>clusterMonitor@admin</option><option>backup@admin</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-new-user')">Cancel</button>
+      <button class="btn btn-primary" onclick="addUser()">➕ Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: New Role ══════════ -->
+<div class="modal-overlay" id="modal-new-role">
+  <div class="modal" style="width:480px">
+    <div class="modal-header"><div class="modal-title">+ Add Custom Role</div>
+      <button class="modal-close" onclick="closeModal('modal-new-role')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Role Name</label><input class="form-input" id="nr-name" placeholder="e.g. analyticsReadOnly"/></div>
+      <div class="form-group"><label class="form-label">Database</label>
+        <select class="form-select"><option>admin</option><option>analytics</option><option>app_db</option></select></div>
+      <div class="form-group"><label class="form-label">Privileges (actions)</label>
+        <select class="form-select" id="nr-priv" multiple style="height:120px">
+          <option selected>find</option><option>insert</option><option>update</option><option>remove</option>
+          <option>createIndex</option><option>dropIndex</option><option>listCollections</option><option>collStats</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Inherits From</label>
+        <select class="form-select" id="nr-inherit"><option>(none)</option><option>read</option><option>readWrite</option><option>dbAdmin</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-new-role')">Cancel</button>
+      <button class="btn btn-primary" onclick="addRole()">➕ Create Role</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: New Alert Config ══════════ -->
+<div class="modal-overlay" id="modal-new-alert">
+  <div class="modal" style="width:480px">
+    <div class="modal-header"><div class="modal-title">+ Add Alert Configuration</div>
+      <button class="modal-close" onclick="closeModal('modal-new-alert')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Alert If</label>
+        <select class="form-select" id="na-metric">
+          <option>Host is down</option><option>CPU utilization is above</option><option>Disk space % used is above</option>
+          <option>Connections is above</option><option>Replication lag is above</option><option>Opcounters - query is above</option>
+          <option>Page faults is above</option><option>Memory resident is above</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Threshold</label>
+        <div style="display:flex;gap:8px"><input class="form-input" id="na-threshold" value="90"/><select class="form-select" style="width:120px"><option>%</option><option>seconds</option><option>count</option><option>MB</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Applies To</label>
+        <select class="form-select" id="na-target"><option>All clusters</option><option>rs-prod-01</option><option>sharded-analytics</option><option>rs-staging</option></select></div>
+      <div class="form-group"><label class="form-label">Severity</label>
+        <select class="form-select" id="na-sev"><option>Critical</option><option>Warning</option><option>Info</option></select></div>
+      <div class="form-group"><label class="form-label">Notify Via</label>
+        <select class="form-select" id="na-notify" multiple style="height:100px">
+          <option selected>Email</option><option>Slack</option><option>PagerDuty</option><option>Webhook</option><option>SMS</option><option>Microsoft Teams</option>
+        </select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-new-alert')">Cancel</button>
+      <button class="btn btn-primary" onclick="addAlertConfig()">➕ Create Alert</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: LDAP Config ══════════ -->
+<div class="modal-overlay" id="modal-ldap">
+  <div class="modal" style="width:480px">
+    <div class="modal-header"><div class="modal-title">🔗 Configure LDAP</div>
+      <button class="modal-close" onclick="closeModal('modal-ldap')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">LDAP Server URI</label><input class="form-input" placeholder="ldaps://ldap.mongodb-brazil.com:636"/></div>
+      <div class="form-group"><label class="form-label">Bind DN</label><input class="form-input" placeholder="cn=mongodb,ou=services,dc=mongodb-brazil,dc=com"/></div>
+      <div class="form-group"><label class="form-label">Bind Password</label><input class="form-input" type="password" placeholder="••••••••"/></div>
+      <div class="form-group"><label class="form-label">User-to-DN Mapping</label><input class="form-input" placeholder="{0}@mongodb-brazil.com"/></div>
+      <div class="form-group"><label class="form-label">Query Template</label><input class="form-input" placeholder="ou=users,dc=mongodb-brazil,dc=com??sub?(uid={USER})"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-ldap')">Cancel</button>
+      <button class="btn btn-secondary" onclick="toast('Testing...','Connecting to LDAP server...','info');setTimeout(()=>toast('LDAP OK','Connection successful.','success'),1500)">Test Connection</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-ldap');toast('LDAP enabled','LDAP authentication configured.','success')">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Add IP ══════════ -->
+<div class="modal-overlay" id="modal-ip">
+  <div class="modal" style="width:400px">
+    <div class="modal-header"><div class="modal-title">+ Add IP / CIDR</div>
+      <button class="modal-close" onclick="closeModal('modal-ip')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">IP Address or CIDR</label><input class="form-input" id="ip-value" placeholder="e.g. 192.168.1.0/24"/></div>
+      <div class="form-group"><label class="form-label">Comment</label><input class="form-input" id="ip-comment" placeholder="e.g. New office"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-ip')">Cancel</button>
+      <button class="btn btn-primary" onclick="addIP()">➕ Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Audit Config ══════════ -->
+<div class="modal-overlay" id="modal-audit-config">
+  <div class="modal" style="width:460px">
+    <div class="modal-header"><div class="modal-title">⚙ Configure Auditing</div>
+      <button class="modal-close" onclick="closeModal('modal-audit-config')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Audit Destination</label>
+        <select class="form-select"><option>File (BSON)</option><option>File (JSON)</option><option>Syslog</option></select></div>
+      <div class="auth-row"><div><b>Authentication events</b></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+      <div class="auth-row"><div><b>Authorization checks</b></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+      <div class="auth-row"><div><b>DDL operations (create/drop)</b></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+      <div class="auth-row"><div><b>User & role management</b></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+      <div class="auth-row" style="border-bottom:none"><div><b>CRUD operations (verbose)</b></div><label class="switch"><input type="checkbox"><span class="slider"></span></label></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-audit-config')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-audit-config');toast('Audit config saved','Auditing settings applied to all nodes.','success')">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Manual Snapshot ══════════ -->
+<div class="modal-overlay" id="modal-snap-picker">
+  <div class="modal" style="width:380px">
+    <div class="modal-header">
+      <div class="modal-title">📸 Take Manual Snapshot</div>
+      <button class="modal-close" onclick="closeModal('modal-snap-picker')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Cluster</label>
+        <select class="form-select" id="manual-snap-cluster">
+          <option>rs-prod-01</option><option>sharded-analytics</option><option>rs-staging</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description (optional)</label>
+        <input class="form-input" placeholder="e.g. Pre-deployment snapshot"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-snap-picker')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-snap-picker');takeSnapshotFor(document.getElementById('manual-snap-cluster').value)">📸 Take Snapshot</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Backup Policy ══════════ -->
+<div class="modal-overlay" id="modal-backup-policy">
+  <div class="modal" style="width:500px">
+    <div class="modal-header">
+      <div class="modal-title">⚙ Backup Policy</div>
+      <button class="modal-close" onclick="closeModal('modal-backup-policy')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Cluster</label>
+        <select class="form-select"><option>rs-prod-01</option><option>sharded-analytics</option><option>rs-staging</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Snapshot Frequency</label>
+        <select class="form-select" id="bp-freq">
+          <option>Every 6 hours</option><option>Every 12 hours</option><option>Every 24 hours</option><option>Every 2 hours</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Daily Snapshots — Retain for</label>
+        <select class="form-select"><option>7 days</option><option>14 days</option><option>30 days</option><option>60 days</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Weekly Snapshots — Retain for</label>
+        <select class="form-select"><option>4 weeks</option><option>8 weeks</option><option>12 weeks</option><option>26 weeks</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Monthly Snapshots — Retain for</label>
+        <select class="form-select"><option>3 months</option><option>6 months</option><option>12 months</option><option>24 months</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Point-in-Time Restore</label>
+        <select class="form-select"><option>Enabled (keep 24h oplog)</option><option>Enabled (keep 48h oplog)</option><option>Enabled (keep 7d oplog)</option><option>Disabled</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Encryption at Rest</label>
+        <select class="form-select"><option>Enabled (AES-256)</option><option>Disabled</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-backup-policy')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBackupPolicy()">💾 Save Policy</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Restore ══════════ -->
+<div class="modal-overlay" id="modal-restore">
+  <div class="modal" style="width:500px">
+    <div class="modal-header">
+      <div class="modal-title">↩ Restore Cluster</div>
+      <button class="modal-close" onclick="closeModal('modal-restore')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Source Cluster</label>
+        <input class="form-input" id="restore-source" readonly/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Restore Method</label>
+        <select class="form-select" id="restore-method" onchange="toggleRestoreMethod(this.value)">
+          <option value="snapshot">From Snapshot</option>
+          <option value="pit">Point-in-Time</option>
+          <option value="download">Download Snapshot</option>
+        </select>
+      </div>
+      <div id="restore-snapshot-picker">
+        <div class="form-group">
+          <label class="form-label">Select Snapshot</label>
+          <select class="form-select" id="restore-snapshot-sel"></select>
+        </div>
+      </div>
+      <div id="restore-pit-picker" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Restore Point (UTC)</label>
+          <input class="form-input" type="datetime-local" value="2024-01-15T09:00"/>
+        </div>
+      </div>
+      <div id="restore-target-section">
+        <div class="form-group">
+          <label class="form-label">Restore Target</label>
+          <select class="form-select" id="restore-target">
+            <option>Restore to same cluster (overwrite)</option>
+            <option>Restore to rs-staging</option>
+            <option>Restore to new cluster</option>
+          </select>
+        </div>
+        <div style="background:#FEF3E2;border:1px solid #F5A623;border-radius:6px;padding:12px;font-size:13px;color:#92400E">
+          ⚠️ Restoring to the same cluster will overwrite all current data. This cannot be undone.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-restore')">Cancel</button>
+      <button class="btn btn-primary" onclick="startRestore()">↩ Start Restore</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Add Node ══════════ -->
+<div class="modal-overlay" id="modal-add-node">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Node to Replica Set</div>
+      <button class="modal-close" onclick="closeModal('modal-add-node')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Hostname</label><input class="form-input" id="addnode-host" placeholder="mongo-node-04.mongodb-brazil.internal"/></div>
+      <div class="form-group"><label class="form-label">Port</label><input class="form-input" id="addnode-port" value="27017"/></div>
+      <div class="form-group"><label class="form-label">Node Type</label>
+        <select class="form-select" id="addnode-type"><option>Secondary</option><option>Hidden Secondary</option><option>Arbiter</option><option>Delayed Secondary</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Priority</label><input class="form-input" value="1"/></div>
+      <div class="form-group"><label class="form-label">Votes</label><input class="form-input" value="1"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-node')">Cancel</button>
+      <button class="btn btn-primary" onclick="applyAddNode()">➕ Add Node</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Step Down ══════════ -->
+<div class="modal-overlay" id="modal-stepdown">
+  <div class="modal" style="width:380px">
+    <div class="modal-header">
+      <div class="modal-title">Step Down Primary</div>
+      <button class="modal-close" onclick="closeModal('modal-stepdown')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--gray5);font-size:14px;margin-bottom:16px">This will trigger a new election. The current primary will step down for <b>60 seconds</b> and a new primary will be elected automatically.</p>
+      <div class="form-group"><label class="form-label">Step Down Duration (seconds)</label><input class="form-input" value="60"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-stepdown')">Cancel</button>
+      <button class="btn btn-danger" onclick="closeModal('modal-stepdown');toast('Step down initiated','New election in progress…','info')">Step Down</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Version Upgrade ══════════ -->
+<div class="modal-overlay" id="modal-upgrade">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Upgrade MongoDB Version</div>
+      <button class="modal-close" onclick="closeModal('modal-upgrade')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Target Version</label>
+        <select class="form-select" id="upgrade-target-ver"><option>7.0.6</option><option>7.0.5</option><option>6.0.13</option><option>6.0.12</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Upgrade Strategy</label>
+        <select class="form-select"><option>Rolling Upgrade (zero downtime)</option><option>All at once</option></select>
+      </div>
+      <div style="background:#FEF3E2;border:1px solid #F5A623;border-radius:6px;padding:12px;font-size:13px;color:#92400E">
+        ⚠️ Rolling upgrade will restart nodes one at a time. Ensure all nodes are healthy before proceeding.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-upgrade')">Cancel</button>
+      <button class="btn btn-primary" onclick="applyUpgrade()">⬆ Start Rolling Upgrade</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: Edit Cluster ══════════ -->
+<div class="modal-overlay" id="modal-edit-cluster">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="edit-cluster-title">Edit Cluster</div>
+      <button class="modal-close" onclick="closeModal('modal-edit-cluster')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">MongoDB Version</label>
+        <select class="form-select" id="edit-version"><option>7.0.5</option><option>7.0.6</option><option>6.0.12</option><option>5.0.24</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Oplog Size (MB)</label><input class="form-input" id="edit-oplog" value="10240"/></div>
+      <div class="form-group"><label class="form-label">WiredTiger Cache Size (GB)</label><input class="form-input" id="edit-cache" value="4"/></div>
+      <div class="form-group"><label class="form-label">Log Level</label>
+        <select class="form-select" id="edit-loglevel"><option value="0">0 - Default</option><option value="1">1 - Verbose</option><option value="2">2 - Debug</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-cluster')">Cancel</button>
+      <button class="btn btn-primary" onclick="applyEditCluster()">▶ Apply via Automation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ══════════════════════════════════════════════════
+  // TOAST SYSTEM
+  // ══════════════════════════════════════════════════
+  const ICONS = {success:'✅', error:'❌', warning:'⚠️', info:'ℹ️'};
+  function toast(title, msg='', type='info', duration=4000) {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.innerHTML = `<div class="toast-icon">${ICONS[type]}</div>
+      <div class="toast-body"><div class="toast-title">${title}</div>${msg?`<div class="toast-msg">${msg}</div>`:''}
+      </div><button class="toast-close" onclick="removeToast(this.parentElement)">×</button>`;
+    c.appendChild(t);
+    setTimeout(() => removeToast(t), duration);
+  }
+  function removeToast(t) {
+    if (!t || !t.parentElement) return;
+    t.classList.add('removing');
+    setTimeout(() => t.remove(), 250);
+  }
+
+  // ══════════════════════════════════════════════════
+  // PROGRESS MODAL
+  // ══════════════════════════════════════════════════
+  function runProgress(title, steps, onDone) {
+    document.getElementById('prog-title').textContent = title;
+    document.getElementById('prog-steps').innerHTML = steps.map((s,i) =>
+      `<div class="prog-step" id="pstep-${i}">
+        <div class="prog-step-icon" id="picon-${i}">⬜</div>
+        <div><div class="prog-step-label">${s.label}</div><div class="prog-step-sub" id="psub-${i}">${s.sub||''}</div></div>
+        <div class="prog-step-time" id="ptime-${i}"></div>
+      </div>`).join('');
+    document.getElementById('prog-bar').style.width = '0%';
+    document.getElementById('prog-status').textContent = 'Starting…';
+    document.getElementById('prog-footer').style.display = 'none';
+    openModal('modal-progress');
+
+    let i = 0;
+    const total = steps.length;
+    function next() {
+      if (i >= total) {
+        document.getElementById('prog-bar').style.width = '100%';
+        document.getElementById('prog-status').textContent = '✓ Completed successfully';
+        document.getElementById('prog-footer').style.display = 'flex';
+        if (onDone) onDone();
+        return;
+      }
+      const s = steps[i];
+      document.getElementById(`picon-${i}`).textContent = '🔄';
+      document.getElementById(`picon-${i}`).classList.add('doing');
+      document.getElementById(`psub-${i}`).textContent = s.doing || s.sub || '';
+      document.getElementById('prog-status').textContent = s.label + '…';
+      document.getElementById('prog-bar').style.width = Math.round((i/total)*100) + '%';
+      const t0 = Date.now();
+      const dur = s.dur || 1200;
+      setTimeout(() => {
+        document.getElementById(`picon-${i}`).textContent = '✅';
+        document.getElementById(`picon-${i}`).classList.replace('doing','done');
+        document.getElementById(`ptime-${i}`).textContent = ((Date.now()-t0)/1000).toFixed(1)+'s';
+        document.getElementById(`psub-${i}`).textContent = s.done || s.sub || '';
+        i++; next();
+      }, dur);
+    }
+    next();
+  }
+
+  // ══════════════════════════════════════════════════
+  // STATE — cluster store
+  // ══════════════════════════════════════════════════
+  const clusterStore = [
+    {
+      id:'rs-prod-01', type:'rs', name:'rs-prod-01', version:'7.0.5', status:'warning',
+      nodes:[
+        {host:'mongo-node-01.mongodb-brazil.internal:27017', role:'PRIMARY',   version:'7.0.5', status:'green', uptime:'14d 6h', conn:342, disk:62, lag:'—'},
+        {host:'mongo-node-02.mongodb-brazil.internal:27017', role:'SECONDARY', version:'7.0.5', status:'yellow',uptime:'14d 6h', conn:201, disk:91, lag:'0.8s'},
+        {host:'mongo-node-03.mongodb-brazil.internal:27017', role:'SECONDARY', version:'7.0.5', status:'green', uptime:'14d 6h', conn:198, disk:58, lag:'0.2s'},
+      ]
+    },
+    {
+      id:'sharded-analytics', type:'sharded', name:'sharded-analytics', version:'7.0.5', status:'healthy',
+      nodes:[
+        {host:'mongos-01.mongodb-brazil.internal:27017',      role:'mongos',         version:'7.0.5', status:'green', uptime:'30d', conn:520, disk:0,  lag:'—'},
+        {host:'shard-01-n1.mongodb-brazil.internal:27018',    role:'Shard PRIMARY',  version:'7.0.5', status:'green', uptime:'30d', conn:180, disk:45, lag:'—'},
+        {host:'shard-02-n1.mongodb-brazil.internal:27018',    role:'Shard PRIMARY',  version:'7.0.5', status:'green', uptime:'30d', conn:165, disk:51, lag:'—'},
+        {host:'configsvr-01.mongodb-brazil.internal:27019',   role:'Config Server',  version:'7.0.5', status:'green', uptime:'30d', conn:12,  disk:18, lag:'—'},
+      ]
+    },
+    {
+      id:'rs-staging', type:'rs', name:'rs-staging', version:'6.0.12', status:'healthy',
+      nodes:[
+        {host:'stg-mongo-01.mongodb-brazil.internal:27017', role:'PRIMARY',   version:'6.0.12', status:'green', uptime:'5d', conn:42, disk:22, lag:'—'},
+        {host:'stg-mongo-02.mongodb-brazil.internal:27017', role:'SECONDARY', version:'6.0.12', status:'green', uptime:'5d', conn:38, disk:21, lag:'0.1s'},
+      ]
+    },
+    {
+      id:'mongo-dev-01', type:'standalone', name:'mongo-dev-01', version:'7.0.5', status:'healthy',
+      nodes:[
+        {host:'dev-mongo.mongodb-brazil.internal:27017', role:'Standalone', version:'7.0.5', status:'green', uptime:'2d', conn:8, disk:12, lag:'—'},
+      ]
+    },
+  ];
+
+  function statusPill(s) {
+    if (s==='healthy') return '<span class="pill pill-green">● Healthy</span>';
+    if (s==='warning') return '<span class="pill pill-yellow">● Warning</span>';
+    if (s==='critical')return '<span class="pill pill-red">● Critical</span>';
+    return '<span class="pill pill-gray">● Unknown</span>';
+  }
+  function typeBadge(t) {
+    if (t==='rs')         return '<span class="cluster-type-badge badge-rs">Replica Set</span>';
+    if (t==='sharded')    return '<span class="cluster-type-badge badge-sharded">Sharded</span>';
+    if (t==='standalone') return '<span class="cluster-type-badge badge-standalone">Standalone</span>';
+    return '';
+  }
+  function diskBar(pct) {
+    const cls = pct>85?'danger':pct>70?'warn':'';
+    const col = pct>85?'var(--red)':pct>70?'var(--yellow)':'inherit';
+    return pct===0?'—':`<div style="display:flex;align-items:center;gap:8px">
+      <div class="progress-bar-wrap" style="width:80px"><div class="progress-bar ${cls}" style="width:${pct}%"></div></div>
+      <span style="font-size:12px;color:${col}">${pct}%</span></div>`;
+  }
+
+  // ── Render Dashboard cluster cards ──
+  function renderDashboard() {
+    const grid = document.getElementById('dash-cluster-grid');
+    if (!grid) return;
+    grid.innerHTML = clusterStore.map(c => `
+      <div class="cluster-card" id="dash-card-${c.id}">
+        <div class="cluster-card-header">
+          ${typeBadge(c.type)}
+          <span class="cluster-name">${c.name}</span>
+          ${statusPill(c.status)}
+          <div class="cluster-actions">
+            <button class="icon-btn" onclick="showSection('monitoring',null)">📊</button>
+            <button class="icon-btn" onclick="openEditCluster('${c.id}')">✎ Edit</button>
+            <button class="icon-btn" onclick="terminateCluster('${c.id}')">⏹</button>
+          </div>
+        </div>
+        <div class="cluster-nodes">
+          ${c.nodes.slice(0,3).map(n=>`
+          <div class="node-row">
+            <div class="node-status ns-${n.status}"></div>
+            <div class="node-host">${n.host}</div>
+            <div class="node-role">${n.role}</div>
+            <div class="node-version">${n.version}</div>
+            <div class="node-ping">${n.conn} conn</div>
+          </div>`).join('')}
+          ${c.nodes.length>3?`<div style="font-size:12px;color:var(--gray4);padding:6px 0">+${c.nodes.length-3} more nodes</div>`:''}
+        </div>
+      </div>`).join('');
+    updateStatCards();
+  }
+
+  function updateStatCards() {
+    const total = clusterStore.length;
+    const warn  = clusterStore.filter(c=>c.status==='warning'||c.status==='critical').length;
+    const hosts = clusterStore.reduce((a,c)=>a+c.nodes.length,0);
+    document.getElementById('stat-clusters').textContent = total;
+    document.getElementById('stat-hosts').textContent    = hosts;
+    document.getElementById('stat-warn').textContent     = warn;
+  }
+
+  // ── Render Deployments list ──
+  function renderDeployments() {
+    const cont = document.getElementById('deployments-list');
+    if (!cont) return;
+    cont.innerHTML = clusterStore.map(c => `
+      <div class="card" style="margin-bottom:16px" id="depl-card-${c.id}">
+        <div class="card-header" style="background:var(--gray1)">
+          ${typeBadge(c.type)}
+          <span class="card-title">${c.name}</span>
+          ${statusPill(c.status)}
+          <span style="color:var(--gray4);font-size:12px;margin-left:16px">MongoDB ${c.version} · ${c.nodes.length} node${c.nodes.length>1?'s':''}</span>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="showSection('monitoring',null)">📊 Metrics</button>
+            <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="openEditCluster('${c.id}')">✎ Edit</button>
+            ${c.type==='rs'?`<button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="openAddNode('${c.id}')">+ Add Node</button>`:''}
+            <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="openUpgrade('${c.id}')">⬆ Upgrade</button>
+            <button class="btn btn-danger" style="padding:5px 10px;font-size:12px" onclick="terminateCluster('${c.id}')">⏹ Terminate</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table class="tbl">
+            <thead><tr><th>Status</th><th>Host</th><th>Role</th><th>Version</th><th>Uptime</th><th>Connections</th><th>Disk</th><th>Lag</th><th>Actions</th></tr></thead>
+            <tbody id="nodes-${c.id}">
+              ${c.nodes.map((n,i)=>nodeRow(c.id,n,i)).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`).join('');
+  }
+
+  function nodeRow(cid, n, i) {
+    const sp = n.status==='green'?'pill-green':n.status==='yellow'?'pill-yellow':'pill-red';
+    const rp = n.role==='PRIMARY'||n.role==='Shard PRIMARY'?'pill-blue':'pill-gray';
+    return `<tr id="noderow-${cid}-${i}">
+      <td><span class="pill ${sp}">● ${n.status==='green'?'Online':n.status==='yellow'?'Warning':'Offline'}</span></td>
+      <td><b>${n.host}</b></td>
+      <td><span class="pill ${rp}">${n.role}</span></td>
+      <td>${n.version}</td>
+      <td>${n.uptime}</td>
+      <td>${n.conn}</td>
+      <td>${diskBar(n.disk)}</td>
+      <td>${n.lag}</td>
+      <td style="display:flex;gap:4px;padding:8px 0">
+        ${(n.role==='PRIMARY'||n.role==='Shard PRIMARY')?`<button class="icon-btn" onclick="stepDown('${cid}',${i})">Step Down</button>`:''}
+        ${n.role!=='PRIMARY'&&n.role!=='mongos'&&n.role!=='Config Server'?`<button class="icon-btn" onclick="resyncNode('${cid}',${i})">Resync</button>`:''}
+      </td>
+    </tr>`;
+  }
+
+  // ══════════════════════════════════════════════════
+  // CLUSTER ACTIONS
+  // ══════════════════════════════════════════════════
+
+  // ── New Deployment ──
+  function deployNewCluster() {
+    const name    = document.getElementById('new-name').value.trim();
+    const type    = document.getElementById('new-type').value;
+    const version = document.getElementById('new-version').value;
+    const members = parseInt(document.getElementById('new-members').value);
+    const port    = document.getElementById('new-port').value;
+    if (!name) { toast('Validation Error','Cluster name is required.','error'); return; }
+    if (clusterStore.find(c=>c.id===name)) { toast('Conflict',`Cluster "${name}" already exists.`,'error'); return; }
+    closeModal('modal-deploy');
+
+    const typeKey = type==='Replica Set'?'rs':type==='Sharded Cluster'?'sharded':'standalone';
+    const hosts = Array.from({length:members},(_,i)=>`${name}-node-0${i+1}.mongodb-brazil.internal:${port}`);
+
+    const steps = [
+      {label:'Contacting Automation Agents',    doing:'Verifying agent connectivity…',        done:'All agents reachable',           dur:1400},
+      {label:'Validating host configuration',   doing:'Checking OS, ports, disk…',            done:'Hosts validated',                dur:1200},
+      {label:'Generating deployment config',    doing:'Building mongod configuration…',       done:'Configuration generated',        dur:900},
+      {label:'Downloading MongoDB binaries',    doing:`Fetching MongoDB ${version}…`,         done:`MongoDB ${version} ready`,       dur:2000},
+      {label:'Starting mongod processes',       doing:'Launching mongod on all nodes…',       done:'All mongod processes running',   dur:1500},
+      ...(typeKey==='rs'?[
+        {label:'Initiating Replica Set',        doing:'Running rs.initiate()…',               done:'Replica set initialized',        dur:1200},
+        {label:'Electing Primary',              doing:'Waiting for election…',                done:'Primary elected',                dur:1000},
+        {label:'Syncing secondaries',           doing:'Initial sync in progress…',            done:'All members in sync',            dur:1800},
+      ]:[]),
+      {label:'Enabling monitoring',             doing:'Registering with Monitoring Agent…',   done:'Monitoring active',              dur:800},
+      {label:'Configuring backup',              doing:'Setting up backup daemon…',            done:'Backup enabled',                 dur:700},
+    ];
+
+    runProgress(`Provisioning ${type}: ${name}`, steps, () => {
+      const newCluster = {
+        id: name, type: typeKey, name, version, status:'healthy',
+        nodes: hosts.map((h,i)=>({
+          host:h, role: i===0?'PRIMARY':'SECONDARY', version, status:'green',
+          uptime:'just now', conn:0, disk:5, lag: i===0?'—':'0.0s'
+        }))
+      };
+      if (typeKey==='standalone') newCluster.nodes[0].role = 'Standalone';
+      clusterStore.push(newCluster);
+      renderDashboard();
+      renderDeployments();
+      toast(`${name} is live!`,`${type} provisioned successfully with ${members} node(s).`,'success', 6000);
+    });
+  }
+
+  // ── Terminate Cluster ──
+  function terminateCluster(cid) {
+    const c = clusterStore.find(x=>x.id===cid);
+    if (!c) return;
+    if (!confirm(`Terminate "${c.name}"?\n\nAll data will be lost. This action cannot be undone.`)) return;
+
+    const steps = [
+      {label:'Disabling backup',           doing:'Stopping backup daemon…',       done:'Backup disabled',        dur:800},
+      {label:'Stopping monitoring agents', doing:'Deregistering agents…',         done:'Agents deregistered',    dur:600},
+      {label:'Stopping mongod processes',  doing:'Sending shutdown signal…',      done:'All processes stopped',  dur:1200},
+      {label:'Removing configuration',     doing:'Cleaning Automation config…',   done:'Config removed',         dur:700},
+    ];
+    runProgress(`Terminating ${c.name}`, steps, () => {
+      const idx = clusterStore.findIndex(x=>x.id===cid);
+      if (idx>-1) clusterStore.splice(idx,1);
+      renderDashboard();
+      renderDeployments();
+      toast(`${c.name} terminated`, 'All resources have been released.', 'warning', 5000);
+    });
+  }
+
+  // ── Edit Cluster — open modal ──
+  let editingCluster = null;
+  function openEditCluster(cid) {
+    editingCluster = cid;
+    const c = clusterStore.find(x=>x.id===cid);
+    if (!c) return;
+    document.getElementById('edit-cluster-title').textContent = `Edit Cluster: ${c.name}`;
+    document.getElementById('edit-version').value = c.version;
+    openModal('modal-edit-cluster');
+  }
+  function applyEditCluster() {
+    const c = clusterStore.find(x=>x.id===editingCluster);
+    if (!c) return;
+    const newVer = document.getElementById('edit-version').value;
+    const newLog = document.getElementById('edit-loglevel').value;
+    closeModal('modal-edit-cluster');
+    const steps = [
+      {label:'Validating new configuration',  doing:'Checking config diff…',            done:'Config validated',          dur:900},
+      {label:'Applying config via Automation', doing:'Pushing config to agents…',        done:'Config pushed',             dur:1100},
+      {label:'Rolling restart',               doing:`Restarting nodes one by one…`,     done:'All nodes restarted',       dur:1800},
+    ];
+    runProgress(`Applying changes to ${c.name}`, steps, () => {
+      c.version = newVer;
+      c.nodes.forEach(n=>n.version=newVer);
+      renderDashboard(); renderDeployments();
+      toast('Changes applied', `${c.name} updated to MongoDB ${newVer}, log level ${newLog}.`, 'success');
+    });
+  }
+
+  // ── Add Node ──
+  let addNodeTarget = null;
+  function openAddNode(cid) {
+    addNodeTarget = cid;
+    document.getElementById('addnode-host').value = '';
+    openModal('modal-add-node');
+  }
+  function applyAddNode() {
+    const c = clusterStore.find(x=>x.id===addNodeTarget);
+    if (!c) return;
+    const host = document.getElementById('addnode-host').value.trim() || `${c.name}-node-0${c.nodes.length+1}.mongodb-brazil.internal:27017`;
+    const role = document.getElementById('addnode-type').value;
+    closeModal('modal-add-node');
+    const steps = [
+      {label:'Contacting agent on new host', doing:'Verifying connectivity…',      done:'Agent reachable',           dur:1000},
+      {label:'Configuring mongod',           doing:'Writing mongod.conf…',          done:'Config written',            dur:800},
+      {label:'Starting mongod',              doing:'Launching process…',            done:'mongod running',            dur:900},
+      {label:'Adding to replica set',        doing:'Running rs.add()…',             done:'Member added',              dur:800},
+      {label:'Initial sync',                 doing:'Syncing data from primary…',    done:'Sync complete',             dur:2500},
+    ];
+    runProgress(`Adding node to ${c.name}`, steps, () => {
+      c.nodes.push({host, role:'SECONDARY', version:c.version, status:'green', uptime:'just now', conn:0, disk:3, lag:'0.0s'});
+      renderDashboard(); renderDeployments();
+      toast('Node added', `${host} joined ${c.name} as Secondary.`, 'success');
+    });
+  }
+
+  // ── Step Down Primary ──
+  function stepDown(cid, nodeIdx) {
+    const c = clusterStore.find(x=>x.id===cid);
+    if (!c) return;
+    const steps = [
+      {label:'Sending rs.stepDown()',    doing:'Contacting primary…',        done:'Command accepted',      dur:800},
+      {label:'Primary stepping down',   doing:'Node is stepping down…',     done:'Node stepped down',     dur:1000},
+      {label:'Election in progress',    doing:'Nodes negotiating votes…',   done:'Election complete',     dur:1400},
+      {label:'New primary confirmed',   doing:'Verifying new primary…',     done:'New primary elected',   dur:600},
+    ];
+    runProgress(`Step Down — ${c.name}`, steps, () => {
+      const oldPrimary = c.nodes.find(n=>n.role==='PRIMARY');
+      const newPrimary = c.nodes.find((n,i)=>i!==nodeIdx && n.role==='SECONDARY');
+      if (oldPrimary) oldPrimary.role = 'SECONDARY';
+      if (newPrimary) newPrimary.role = 'PRIMARY';
+      renderDashboard(); renderDeployments();
+      toast('New primary elected', `${newPrimary?.host || 'another node'} is now PRIMARY.`, 'success');
+    });
+  }
+
+  // ── Resync Node ──
+  function resyncNode(cid, nodeIdx) {
+    const c = clusterStore.find(x=>x.id===cid);
+    if (!c) return;
+    const n = c.nodes[nodeIdx];
+    const steps = [
+      {label:'Stopping mongod',           doing:'Sending shutdown…',          done:'mongod stopped',        dur:800},
+      {label:'Clearing data directory',   doing:'Wiping local data…',         done:'Data cleared',          dur:600},
+      {label:'Restarting mongod',         doing:'Launching process…',         done:'mongod running',        dur:900},
+      {label:'Initial sync from primary', doing:'Copying data…',              done:'Sync complete',         dur:2500},
+      {label:'Catching up oplog',         doing:'Replaying oplog entries…',   done:'Node in sync',          dur:1000},
+    ];
+    runProgress(`Resync — ${n.host}`, steps, () => {
+      n.status = 'green'; n.lag = '0.0s'; n.disk = Math.max(n.disk-10,5);
+      renderDeployments();
+      toast('Resync complete', `${n.host} is healthy and in sync.`, 'success');
+    });
+  }
+
+  // ── Upgrade Version ──
+  let upgradeTarget = null;
+  function openUpgrade(cid) {
+    upgradeTarget = cid;
+    openModal('modal-upgrade');
+  }
+  function applyUpgrade() {
+    const c = clusterStore.find(x=>x.id===upgradeTarget);
+    if (!c) return;
+    const newVer = document.getElementById('upgrade-target-ver').value;
+    closeModal('modal-upgrade');
+    const steps = c.nodes.flatMap((n,i)=>[
+      {label:`[Node ${i+1}] Stopping ${n.role}`,    doing:`Gracefully stopping ${n.host}…`,   done:`${n.host} stopped`,     dur:900},
+      {label:`[Node ${i+1}] Upgrading binaries`,     doing:`Installing MongoDB ${newVer}…`,    done:`Binaries updated`,       dur:1400},
+      {label:`[Node ${i+1}] Restarting & verifying`, doing:`Starting mongod ${newVer}…`,       done:`${n.host} back online`,  dur:800},
+    ]);
+    runProgress(`Rolling Upgrade → ${newVer} on ${c.name}`, steps, () => {
+      c.version = newVer;
+      c.nodes.forEach(n=>n.version=newVer);
+      renderDashboard(); renderDeployments();
+      toast('Upgrade complete', `${c.name} is now running MongoDB ${newVer}.`, 'success');
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // NAVIGATION
+  // ══════════════════════════════════════════════════
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => {
+      if (e.target === o && o.id !== 'modal-progress') o.classList.remove('open');
+    });
+  });
+
+  function showSection(id, el) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    const sec = document.getElementById('section-' + id);
+    if (sec) sec.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (el) el.classList.add('active');
+    if (id === 'monitoring') {
+      renderMonitoringClusterOptions();
+      switchMonitoringCluster(document.getElementById('monitoring-cluster-sel').value || (clusterStore[0]&&clusterStore[0].id));
+      setTimeout(buildCharts, 50);
+    }
+    if (id === 'deployments')     renderDeployments();
+    if (id === 'backup')          renderSnapshots();
+    if (id === 'restore')         renderSnapshots();
+    if (id === 'alerts')          renderOpenAlerts();
+    if (id === 'security-users')  renderUsers();
+    if (id === 'security-roles')  renderRoles();
+    if (id === 'security-audit')  renderAudit();
+  }
+
+  function confirmAction(msg) {
+    if (confirm(msg + '\n\nEsta ação não pode ser desfeita.')) toast('Action initiated','Processing via Automation Agent.','info');
+  }
+
+  // ══════════════════════════════════════════════════
+  // BACKUP & RESTORE
+  // ══════════════════════════════════════════════════
+  const snapshotStore = [
+    {id:'snap-00142', cluster:'rs-prod-01',        type:'Automated', created:'2024-01-15 08:00', size:'42 GB',  expires:'2024-02-14', status:'ready'},
+    {id:'snap-00141', cluster:'rs-prod-01',        type:'Automated', created:'2024-01-15 02:00', size:'41 GB',  expires:'2024-02-14', status:'ready'},
+    {id:'snap-00140', cluster:'rs-prod-01',        type:'Automated', created:'2024-01-14 20:00', size:'40 GB',  expires:'2024-02-13', status:'ready'},
+    {id:'snap-00139', cluster:'rs-prod-01',        type:'Manual',    created:'2024-01-14 14:00', size:'40 GB',  expires:'2024-02-13', status:'ready'},
+    {id:'snap-00138', cluster:'sharded-analytics', type:'Automated', created:'2024-01-15 06:00', size:'218 GB', expires:'2024-01-29', status:'ready'},
+    {id:'snap-00137', cluster:'sharded-analytics', type:'Automated', created:'2024-01-14 18:00', size:'215 GB', expires:'2024-01-28', status:'ready'},
+    {id:'snap-00136', cluster:'rs-staging',        type:'Automated', created:'2024-01-15 09:00', size:'18 GB',  expires:'2024-01-22', status:'ready'},
+    {id:'snap-00135', cluster:'rs-staging',        type:'Automated', created:'2024-01-14 21:00', size:'17 GB',  expires:'2024-01-21', status:'ready'},
+  ];
+
+  function renderSnapshots(filterCluster='all') {
+    const tbody = document.getElementById('snapshot-list');
+    if (!tbody) return;
+    const list = filterCluster==='all' ? snapshotStore : snapshotStore.filter(s=>s.cluster===filterCluster);
+    tbody.innerHTML = list.map(s=>`
+      <tr>
+        <td><code>${s.id}</code></td>
+        <td>${s.cluster}</td>
+        <td><span class="pill ${s.type==='Manual'?'pill-blue':'pill-gray'}">${s.type}</span></td>
+        <td>${s.created}</td>
+        <td>${s.size}</td>
+        <td>${s.expires}</td>
+        <td><span class="pill pill-green">✓ Ready</span></td>
+        <td style="display:flex;gap:4px;padding:8px 0">
+          <button class="icon-btn" onclick="openRestoreFromSnapshot('${s.cluster}','${s.id}','${s.created}')">↩ Restore</button>
+          <button class="icon-btn" onclick="downloadSnapshot('${s.id}')">⬇</button>
+          <button class="icon-btn" onclick="deleteSnapshot('${s.id}')">🗑</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function filterSnapshots(cluster) { renderSnapshots(cluster); }
+
+  function takeManualSnapshot() {
+    openModal('modal-snap-picker');
+  }
+
+  function takeSnapshotFor(cluster) {
+    const steps = [
+      {label:'Flushing journal',           doing:'Flushing writes to disk…',        done:'Journal flushed',        dur:800},
+      {label:'Locking secondary briefly',  doing:'Pausing replication…',            done:'Lock acquired (0.2s)',    dur:600},
+      {label:'Creating filesystem snapshot',doing:'Snapshotting volumes…',          done:'Snapshot taken',         dur:1400},
+      {label:'Releasing lock',             doing:'Resuming replication…',           done:'Secondary unlocked',     dur:400},
+      {label:'Uploading to backup store',  doing:'Compressing & uploading…',        done:'Upload complete',        dur:1800},
+      {label:'Indexing snapshot',          doing:'Registering in catalog…',         done:'Snapshot ready',         dur:500},
+    ];
+    runProgress(`Taking snapshot — ${cluster}`, steps, () => {
+      const newSnap = {
+        id: 'snap-' + String(parseInt(snapshotStore[0].id.split('-')[1])+1).padStart(5,'0'),
+        cluster, type:'Manual',
+        created: new Date().toISOString().slice(0,16).replace('T',' '),
+        size:'42 GB', expires:'2024-02-15', status:'ready'
+      };
+      snapshotStore.unshift(newSnap);
+      document.getElementById('total-snapshots').textContent = snapshotStore.length + 100;
+      renderSnapshots();
+      toast('Snapshot created!', `${newSnap.id} for ${cluster} is ready.`, 'success');
+    });
+  }
+
+  function openRestoreFlow(cluster) {
+    document.getElementById('restore-source').value = cluster;
+    const sel = document.getElementById('restore-snapshot-sel');
+    sel.innerHTML = snapshotStore.filter(s=>s.cluster===cluster)
+      .map(s=>`<option value="${s.id}">${s.id} · ${s.created} · ${s.size}</option>`).join('');
+    openModal('modal-restore');
+  }
+
+  function openRestoreFromSnapshot(cluster, snapId, created) {
+    openRestoreFlow(cluster);
+    document.getElementById('restore-snapshot-sel').value = snapId;
+  }
+
+  function toggleRestoreMethod(val) {
+    document.getElementById('restore-snapshot-picker').style.display = val==='snapshot'?'block':'none';
+    document.getElementById('restore-pit-picker').style.display      = val==='pit'?'block':'none';
+    document.getElementById('restore-target-section').style.display  = val==='download'?'none':'block';
+  }
+
+  function startRestore() {
+    const cluster = document.getElementById('restore-source').value;
+    const method  = document.getElementById('restore-method').value;
+    const target  = document.getElementById('restore-target')?.value || 'download';
+    closeModal('modal-restore');
+
+    if (method==='download') {
+      toast('Preparing download…','Your restore package will be ready in a few minutes.','info',5000);
+      setTimeout(()=>toast('Download ready','Click to download restore package (42 GB)','success',8000),3000);
+      return;
+    }
+
+    const steps = [
+      {label:'Validating snapshot integrity',   doing:'Verifying checksums…',            done:'Snapshot verified',       dur:1000},
+      {label:'Preparing target cluster',         doing:'Stopping mongod on target…',      done:'Target ready',            dur:1200},
+      {label:'Transferring data',               doing:'Streaming data to target…',       done:'Data transferred',        dur:2500},
+      {label:'Applying oplog (catch-up)',        doing:'Replaying oplog entries…',        done:'Oplog applied',           dur:1500},
+      ...(method==='pit'?[{label:'Point-in-time recovery', doing:'Applying to exact timestamp…', done:'PIT applied', dur:1000}]:[]),
+      {label:'Starting mongod on target',        doing:'Launching processes…',            done:'Target online',           dur:900},
+      {label:'Verifying data integrity',         doing:'Running dbHash…',                 done:'Data integrity confirmed',dur:800},
+    ];
+    runProgress(`Restoring ${cluster} → ${target.split(' ')[3]||target}`, steps, () => {
+      const job = {id:`rst-001${43+document.querySelectorAll('#restore-jobs-list tr').length}`, cluster, method, target, status:'Completed'};
+      const tbody = document.getElementById('restore-jobs-list');
+      if (tbody) tbody.insertAdjacentHTML('afterbegin',`
+        <tr><td><code>rst-001${43+tbody.children.length}</code></td><td>${cluster}</td>
+        <td><span class="pill pill-blue">${method==='pit'?'PIT':'Snapshot'}</span></td>
+        <td>${new Date().toISOString().slice(0,16).replace('T',' ')}</td>
+        <td>${target.split('(')[0].trim()}</td>
+        <td><span class="pill pill-green">✓ Completed</span></td>
+        <td>just now</td>
+        <td><button class="icon-btn" onclick="toast('Download ready','Restore package ready.','info')">⬇ Download</button></td></tr>`);
+      toast('Restore complete!', `${cluster} restored successfully.`, 'success', 6000);
+    });
+  }
+
+  function startPITRestore() {
+    const cluster  = document.getElementById('pit-cluster').value;
+    const dt       = document.getElementById('pit-datetime').value;
+    const target   = document.getElementById('pit-target').value;
+    document.getElementById('restore-source').value = cluster;
+    document.getElementById('restore-method').value = 'pit';
+    toggleRestoreMethod('pit');
+    startRestore();
+  }
+
+  function downloadSnapshot(id) {
+    toast('Preparing download', `Packaging ${id} for download…`, 'info');
+    setTimeout(()=>toast('Download ready',`${id}.tar.gz (42 GB) is ready.`,'success',6000), 2500);
+  }
+
+  function deleteSnapshot(id) {
+    if (!confirm(`Delete snapshot ${id}?\nThis cannot be undone.`)) return;
+    const idx = snapshotStore.findIndex(s=>s.id===id);
+    if (idx>-1) snapshotStore.splice(idx,1);
+    renderSnapshots();
+    toast('Snapshot deleted', `${id} has been permanently removed.`, 'warning');
+  }
+
+  function saveBackupPolicy() {
+    closeModal('modal-backup-policy');
+    toast('Policy saved', 'Backup policy applied. Next snapshot scheduled.', 'success');
+  }
+
+  // ══════════════════════════════════════════════════
+  // ALERTS
+  // ══════════════════════════════════════════════════
+  const openAlerts = [
+    {id:1, sev:'crit',  title:'Disk utilization above 90%', target:'rs-prod-01 / mongo-node-02', detail:'Current: 91% · Threshold: 90%', time:'2 min ago'},
+    {id:2, sev:'warn',  title:'Replication lag above threshold', target:'rs-prod-01 / mongo-node-02', detail:'Current: 0.8s · Threshold: 0.5s', time:'18 min ago'},
+    {id:3, sev:'warn',  title:'High connection count', target:'sharded-analytics / mongos-01', detail:'Current: 520 · Threshold: 500', time:'1h ago'},
+  ];
+
+  function renderOpenAlerts() {
+    const cont = document.getElementById('open-alerts-list');
+    if (!cont) return;
+    if (openAlerts.length===0) { cont.innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--gray4)">✅ No open alerts. All systems healthy.</div></div>'; return; }
+    cont.innerHTML = openAlerts.map(a=>`
+      <div class="card" style="margin-bottom:12px;border-left:4px solid ${a.sev==='crit'?'var(--red)':a.sev==='warn'?'var(--yellow)':'var(--blue)'}">
+        <div class="card-body" style="display:flex;align-items:center;gap:14px;padding:16px">
+          <div style="font-size:22px">${a.sev==='crit'?'🔴':a.sev==='warn'?'🟡':'🔵'}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;color:var(--navy)">${a.title}</div>
+            <div style="font-size:13px;color:var(--gray5);margin-top:2px">${a.target} · ${a.detail}</div>
+          </div>
+          <div style="font-size:12px;color:var(--gray4)">${a.time}</div>
+          <button class="btn btn-secondary" style="font-size:12px;padding:5px 10px" onclick="ackAlert(${a.id})">✓ Acknowledge</button>
+          <button class="btn btn-primary" style="font-size:12px;padding:5px 10px" onclick="resolveAlert(${a.id})">Resolve</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function ackAlert(id) {
+    toast('Alert acknowledged','You will stop receiving notifications for 1h.','info');
+  }
+  function resolveAlert(id) {
+    const idx = openAlerts.findIndex(a=>a.id===id);
+    if (idx>-1) openAlerts.splice(idx,1);
+    renderOpenAlerts();
+    updateAlertBadges();
+    toast('Alert resolved','The alert has been moved to closed.','success');
+  }
+
+  function updateAlertBadges() {
+    const n = openAlerts.length;
+    document.querySelectorAll('.nav-item .badge').forEach(b=>{ if(b.parentElement.textContent.includes('Alerts')) b.textContent=n; });
+    const sub = document.querySelector('#section-alerts .page-subtitle');
+    if (sub) sub.textContent = `${n} open alerts · Project: Production`;
+  }
+
+  const alertConfigs = [
+    {cond:'Host is down', target:'All clusters', thresh:'—', notify:'Email, PagerDuty', on:true},
+    {cond:'Disk space % used is above', target:'All clusters', thresh:'90%', notify:'Email, Slack', on:true},
+    {cond:'CPU utilization is above', target:'rs-prod-01', thresh:'85%', notify:'Email', on:true},
+    {cond:'Connections is above', target:'All clusters', thresh:'500', notify:'Slack', on:true},
+    {cond:'Replication lag is above', target:'rs-prod-01', thresh:'0.5s', notify:'Email, PagerDuty', on:true},
+    {cond:'Page faults is above', target:'All clusters', thresh:'100/s', notify:'Email', on:false},
+  ];
+  function renderAlertConfigs() {
+    const tbody = document.getElementById('alert-config-list');
+    if (!tbody) return;
+    tbody.innerHTML = alertConfigs.map((c,i)=>`
+      <tr>
+        <td><b>${c.cond}</b></td><td>${c.target}</td><td>${c.thresh}</td><td>${c.notify}</td>
+        <td><label class="switch"><input type="checkbox" ${c.on?'checked':''} onchange="alertConfigs[${i}].on=this.checked;toast('Alert ${c.on?'disabled':'enabled'}','${c.cond}','info')"><span class="slider"></span></label></td>
+        <td style="display:flex;gap:4px;padding:8px 0">
+          <button class="icon-btn" onclick="openModal('modal-new-alert')">✎ Edit</button>
+          <button class="icon-btn" onclick="deleteAlertConfig(${i})">🗑</button>
+        </td>
+      </tr>`).join('');
+  }
+  function deleteAlertConfig(i) {
+    if(!confirm('Delete this alert configuration?')) return;
+    alertConfigs.splice(i,1); renderAlertConfigs(); toast('Alert config deleted','','warning');
+  }
+  function addAlertConfig() {
+    const cond = document.getElementById('na-metric').value;
+    const thr  = document.getElementById('na-threshold').value;
+    const tgt  = document.getElementById('na-target').value;
+    const notify = Array.from(document.getElementById('na-notify').selectedOptions).map(o=>o.value).join(', ');
+    alertConfigs.unshift({cond, target:tgt, thresh:thr+'%', notify:notify||'Email', on:true});
+    renderAlertConfigs(); closeModal('modal-new-alert');
+    toast('Alert created',`"${cond}" alert is now active.`,'success');
+  }
+
+  function showAlertTab(tab, el) {
+    document.querySelectorAll('.alert-tab-content').forEach(c=>c.style.display='none');
+    document.getElementById('alert-tab-'+tab).style.display='block';
+    document.querySelectorAll('.alert-tab').forEach(t=>t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    if (tab==='config') renderAlertConfigs();
+    if (tab==='open') renderOpenAlerts();
+  }
+
+  // ══════════════════════════════════════════════════
+  // SECURITY — USERS / ROLES / IP / AUDIT
+  // ══════════════════════════════════════════════════
+  const usersStore = [
+    {name:'admin', auth:'SCRAM-SHA-256', roles:['root@admin'], db:'admin', created:'2023-06-01', status:'active'},
+    {name:'app_service', auth:'SCRAM-SHA-256', roles:['readWrite@app_db'], db:'app_db', created:'2023-08-12', status:'active'},
+    {name:'analytics_ro', auth:'SCRAM-SHA-256', roles:['read@analytics'], db:'analytics', created:'2023-09-03', status:'active'},
+    {name:'backup_user', auth:'SCRAM-SHA-256', roles:['backup@admin'], db:'admin', created:'2023-06-15', status:'active'},
+    {name:'monitor_svc', auth:'x.509', roles:['clusterMonitor@admin'], db:'$external', created:'2023-07-20', status:'active'},
+    {name:'legacy_app', auth:'SCRAM-SHA-1', roles:['readWrite@legacy'], db:'legacy', created:'2022-12-01', status:'disabled'},
+  ];
+  function renderUsers(filter='') {
+    const tbody = document.getElementById('users-list');
+    if (!tbody) return;
+    tbody.innerHTML = usersStore.filter(u=>u.name.toLowerCase().includes(filter.toLowerCase())).map((u,i)=>`
+      <tr>
+        <td><b>${u.name}</b></td>
+        <td><span class="pill pill-gray">${u.auth}</span></td>
+        <td>${u.roles.map(r=>`<span class="pill pill-blue" style="font-size:11px">${r}</span>`).join(' ')}</td>
+        <td><code>${u.db}</code></td>
+        <td>${u.created}</td>
+        <td>${u.status==='active'?'<span class="pill pill-green">● Active</span>':'<span class="pill pill-gray">○ Disabled</span>'}</td>
+        <td style="display:flex;gap:4px;padding:8px 0">
+          <button class="icon-btn" onclick="toast('Edit user','Editing ${u.name}','info');openModal('modal-new-user')">✎</button>
+          <button class="icon-btn" onclick="resetUserPw('${u.name}')">🔑</button>
+          <button class="icon-btn" onclick="deleteUser('${u.name}')">🗑</button>
+        </td>
+      </tr>`).join('');
+  }
+  function filterUsers(v){ renderUsers(v); }
+  function addUser() {
+    const name = document.getElementById('nu-name').value.trim();
+    if(!name){ toast('Validation','Username required.','error'); return; }
+    const auth = document.getElementById('nu-auth').value;
+    const role = document.getElementById('nu-role').value;
+    usersStore.unshift({name, auth, roles:[role], db:role.split('@')[1]||'admin', created:'just now', status:'active'});
+    renderUsers(); closeModal('modal-new-user');
+    toast('User created',`Database user "${name}" created with ${role}.`,'success');
+  }
+  function deleteUser(name) {
+    if(!confirm(`Delete user "${name}"?`)) return;
+    const i = usersStore.findIndex(u=>u.name===name);
+    if(i>-1) usersStore.splice(i,1); renderUsers();
+    toast('User deleted',`"${name}" has been removed.`,'warning');
+  }
+  function resetUserPw(name) {
+    toast('Password reset',`New password generated for "${name}". Copy it now.`,'success',6000);
+  }
+
+  const rolesStore = [
+    {name:'analyticsReadOnly', priv:'find, listCollections, collStats', inherits:'read', users:3},
+    {name:'appWriter', priv:'find, insert, update, remove', inherits:'readWrite', users:5},
+    {name:'indexManager', priv:'createIndex, dropIndex, listIndexes', inherits:'(none)', users:1},
+  ];
+  function renderRoles() {
+    const tbody = document.getElementById('roles-list');
+    if (!tbody) return;
+    tbody.innerHTML = rolesStore.map((r,i)=>`
+      <tr>
+        <td><b>${r.name}</b></td>
+        <td style="font-size:12px;color:var(--gray5)">${r.priv}</td>
+        <td>${r.inherits==='(none)'?'<span style="color:var(--gray4)">—</span>':`<span class="pill pill-blue">${r.inherits}</span>`}</td>
+        <td>${r.users} user${r.users!==1?'s':''}</td>
+        <td style="display:flex;gap:4px;padding:8px 0">
+          <button class="icon-btn" onclick="openModal('modal-new-role')">✎ Edit</button>
+          <button class="icon-btn" onclick="deleteRole(${i})">🗑</button>
+        </td>
+      </tr>`).join('');
+  }
+  function addRole() {
+    const name = document.getElementById('nr-name').value.trim();
+    if(!name){ toast('Validation','Role name required.','error'); return; }
+    const priv = Array.from(document.getElementById('nr-priv').selectedOptions).map(o=>o.value).join(', ');
+    const inh  = document.getElementById('nr-inherit').value;
+    rolesStore.unshift({name, priv:priv||'find', inherits:inh, users:0});
+    renderRoles(); closeModal('modal-new-role');
+    toast('Role created',`Custom role "${name}" created.`,'success');
+  }
+  function deleteRole(i) {
+    if(!confirm('Delete this role?')) return;
+    rolesStore.splice(i,1); renderRoles(); toast('Role deleted','','warning');
+  }
+
+  function toggleAuth(name, on) {
+    toast(`${name} ${on?'enabled':'disabled'}`, on?`${name} is now active cluster-wide.`:`${name} has been disabled.`, on?'success':'warning');
+  }
+  function rotateCerts() {
+    const steps = [
+      {label:'Generating new certificates', doing:'Creating X.509 certs…', done:'Certs generated', dur:1000},
+      {label:'Distributing to nodes',       doing:'Pushing to all hosts…', done:'Certs distributed', dur:1200},
+      {label:'Rolling restart',             doing:'Restarting nodes…',     done:'All nodes restarted', dur:1800},
+    ];
+    runProgress('Rotating TLS Certificates', steps, ()=>toast('Certificates rotated','New TLS certs active on all nodes.','success'));
+  }
+
+  function addIP() {
+    const ip = document.getElementById('ip-value').value.trim();
+    const cm = document.getElementById('ip-comment').value.trim();
+    if(!ip){ toast('Validation','IP/CIDR required.','error'); return; }
+    document.getElementById('ip-list').insertAdjacentHTML('beforeend',
+      `<tr><td><code>${ip}</code></td><td>${cm||'—'}</td><td>just now</td><td><button class="icon-btn" onclick="removeIP(this)">🗑 Remove</button></td></tr>`);
+    closeModal('modal-ip');
+    toast('IP added',`${ip} added to access list.`,'success');
+  }
+  function removeIP(btn) {
+    if(!confirm('Remove this IP from the access list?')) return;
+    btn.closest('tr').remove(); toast('IP removed','','warning');
+  }
+
+  const auditEvents = [
+    {ts:'2024-01-15 10:42:18', user:'admin@mongodb-brazil.com', action:'createUser', res:'app_db.app_service', ip:'10.0.1.42', result:'success'},
+    {ts:'2024-01-15 10:38:02', user:'app_service', action:'authenticate', res:'app_db', ip:'10.0.2.15', result:'success'},
+    {ts:'2024-01-15 10:35:51', user:'unknown', action:'authenticate', res:'admin', ip:'203.0.113.99', result:'fail'},
+    {ts:'2024-01-15 10:30:14', user:'admin@mongodb-brazil.com', action:'dropCollection', res:'staging.temp_data', ip:'10.0.1.42', result:'success'},
+    {ts:'2024-01-15 10:22:40', user:'analytics_ro', action:'authCheck', res:'analytics.events (find)', ip:'10.0.2.88', result:'success'},
+    {ts:'2024-01-15 10:18:33', user:'analytics_ro', action:'authCheck', res:'app_db.users (find)', ip:'10.0.2.88', result:'fail'},
+    {ts:'2024-01-15 10:05:11', user:'backup_user', action:'authenticate', res:'admin', ip:'10.0.1.10', result:'success'},
+    {ts:'2024-01-15 09:58:02', user:'admin@mongodb-brazil.com', action:'updateRole', res:'admin.appWriter', ip:'10.0.1.42', result:'success'},
+  ];
+  function renderAudit(textFilter='', typeFilter='all') {
+    const tbody = document.getElementById('audit-list');
+    if (!tbody) return;
+    tbody.innerHTML = auditEvents
+      .filter(e => (typeFilter==='all'||e.action===typeFilter))
+      .filter(e => (e.user+e.action+e.res+e.ip).toLowerCase().includes(textFilter.toLowerCase()))
+      .map(e=>`<tr>
+        <td style="font-family:monospace;font-size:12px">${e.ts}</td>
+        <td>${e.user}</td>
+        <td><span class="pill pill-blue" style="font-size:11px">${e.action}</span></td>
+        <td><code style="font-size:12px">${e.res}</code></td>
+        <td><code>${e.ip}</code></td>
+        <td>${e.result==='success'?'<span class="pill pill-green">✓ Success</span>':'<span class="pill pill-red">✗ Denied</span>'}</td>
+      </tr>`).join('');
+  }
+  function filterAudit(v){ renderAudit(v, document.querySelector('#section-security-audit select').value); }
+  function filterAuditType(t){ renderAudit(document.querySelector('#section-security-audit input').value, t); }
+
+  // ══════════════════════════════════════════════════
+  // TOPBAR / NAV / AUTOMATION / AGENTS actions
+  // ══════════════════════════════════════════════════
+  function refreshDashboard() {
+    toast('Refreshing…','Polling agents for latest metrics.','info',1500);
+    setTimeout(()=>{ renderDashboard(); toast('Dashboard updated','All cluster states refreshed.','success'); }, 1200);
+  }
+
+  function switchOrg(name) {
+    closeModal('modal-org');
+    document.querySelector('.topbar-org span').textContent = name;
+    toast('Organization switched',`Now viewing "${name}".`,'success');
+  }
+
+  function switchProject(name) {
+    closeModal('modal-project');
+    document.querySelector('.sidebar-project-name').textContent = name;
+    toast('Project switched',`Now viewing project "${name}".`,'success');
+  }
+
+  function importDeployment() {
+    const host = document.getElementById('imp-host').value.trim() || 'existing-mongo.mongodb-brazil.internal:27017';
+    closeModal('modal-import');
+    const steps = [
+      {label:'Connecting to seed host', doing:`Connecting to ${host}…`, done:'Connected', dur:1000},
+      {label:'Authenticating',          doing:'Verifying credentials…', done:'Authenticated', dur:800},
+      {label:'Discovering topology',    doing:'Running rs.status()…',  done:'Topology discovered', dur:1400},
+      {label:'Installing agents',       doing:'Deploying agents to members…', done:'Agents installed', dur:1800},
+      {label:'Enabling monitoring',     doing:'Registering hosts…',    done:'Monitoring active', dur:900},
+    ];
+    runProgress(`Importing deployment from ${host}`, steps, ()=>{
+      const name = 'imported-rs';
+      if (!clusterStore.find(c=>c.id===name)) {
+        clusterStore.push({id:name,type:'rs',name,version:'7.0.4',status:'healthy',nodes:[
+          {host:host, role:'PRIMARY', version:'7.0.4', status:'green', uptime:'imported', conn:55, disk:34, lag:'—'},
+          {host:'imported-n2.mongodb-brazil.internal:27017', role:'SECONDARY', version:'7.0.4', status:'green', uptime:'imported', conn:48, disk:33, lag:'0.1s'},
+        ]});
+      }
+      renderDashboard(); renderDeployments();
+      toast('Deployment imported!','imported-rs is now managed by Ops Manager.','success',6000);
+    });
+  }
+
+  function applyPendingChange(btn, cluster, desc) {
+    const row = btn.closest('tr');
+    const steps = [
+      {label:'Validating change',       doing:'Checking config…',       done:'Validated', dur:800},
+      {label:'Applying via Automation', doing:'Rolling change to nodes…',done:'Applied to all nodes', dur:2000},
+      {label:'Verifying health',        doing:'Checking node health…',  done:'All nodes healthy', dur:900},
+    ];
+    runProgress(`Applying change to ${cluster}`, steps, ()=>{
+      if (row) row.remove();
+      toast('Change applied',`${desc} completed on ${cluster}.`,'success');
+    });
+  }
+  function discardPendingChange(btn) {
+    if(!confirm('Discard this pending change?')) return;
+    btn.closest('tr').remove();
+    toast('Change discarded','The pending change was removed.','warning');
+  }
+
+  function upgradeAllAgents() {
+    const steps = [
+      {label:'Downloading agent 12.0.28', doing:'Fetching package…', done:'Downloaded', dur:1200},
+      {label:'Distributing to 18 hosts',  doing:'Pushing to hosts…', done:'Distributed', dur:1500},
+      {label:'Restarting agents',         doing:'Rolling restart…',  done:'All agents on 12.0.28', dur:1800},
+    ];
+    runProgress('Upgrading all Automation Agents', steps, ()=>{
+      document.querySelectorAll('#agents-tbody tr').forEach(r=>{
+        const verCell = r.children[2];
+        if (verCell) verCell.innerHTML = '12.0.28';
+      });
+      toast('Agents upgraded','All 18 agents now run v12.0.28.','success');
+    });
+  }
+  function upgradeOneAgent(host) {
+    toast('Agent upgrade','Upgrading agent on '+host+'…','info',1500);
+    setTimeout(()=>toast('Agent upgraded',host+' now runs v12.0.28.','success'),1500);
+  }
+
+  // ── Misc helpers ──
+  function toggleMembersField(type) {
+    document.getElementById('members-field').style.display = type==='Standalone' ? 'none' : 'block';
+  }
+
+  // ── INIT ──
+  renderDashboard();
+  renderSnapshots();
+  renderOpenAlerts();
+  renderUsers();
+  renderRoles();
+  renderAudit();
+
+  // ── MONITORING CHARTS ──────────────────────────────
+  const chartInstances = {};
+
+  function makeLabels(n) {
+    const now = new Date();
+    return Array.from({length: n}, (_, i) => {
+      const d = new Date(now - (n - 1 - i) * 3600000 / (n / 24));
+      return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+    });
+  }
+
+  function randSeries(n, base, noise, min=0) {
+    let v = base;
+    return Array.from({length: n}, () => {
+      v += (Math.random() - 0.5) * noise;
+      return Math.max(min, Math.round(v * 10) / 10);
+    });
+  }
+
+  const N = 24;
+  const labels = makeLabels(N);
+
+  const chartDefs = [
+    {
+      id: 'chart-cpu', type: 'line',
+      datasets: [
+        {label:'node-01',data:randSeries(N,42,12,0),borderColor:'#00ED64',backgroundColor:'rgba(0,237,100,.08)',tension:.4,fill:true,pointRadius:0},
+        {label:'node-02',data:randSeries(N,55,15,0),borderColor:'#F5A623',backgroundColor:'rgba(245,166,35,.08)',tension:.4,fill:false,pointRadius:0},
+        {label:'node-03',data:randSeries(N,38,10,0),borderColor:'#0163FF',backgroundColor:'rgba(1,99,255,.08)',tension:.4,fill:false,pointRadius:0},
+      ],
+      yLabel:'%', yMax:100
+    },
+    {
+      id: 'chart-mem', type: 'line',
+      datasets: [
+        {label:'Resident',data:randSeries(N,12,1.5,0),borderColor:'#00ED64',backgroundColor:'rgba(0,237,100,.08)',tension:.4,fill:true,pointRadius:0},
+        {label:'Virtual', data:randSeries(N,24,2,0), borderColor:'#0163FF',backgroundColor:'rgba(1,99,255,.05)',tension:.4,fill:false,pointRadius:0},
+      ],
+      yLabel:'GB', yMax:32
+    },
+    {
+      id: 'chart-ops', type: 'line',
+      datasets: [
+        {label:'Query',  data:randSeries(N,1200,200,0),borderColor:'#00ED64',tension:.4,fill:false,pointRadius:0},
+        {label:'Insert', data:randSeries(N,380,80,0), borderColor:'#0163FF',tension:.4,fill:false,pointRadius:0},
+        {label:'Update', data:randSeries(N,140,40,0), borderColor:'#F5A623',tension:.4,fill:false,pointRadius:0},
+        {label:'Delete', data:randSeries(N,20,8,0),  borderColor:'#DB3030',tension:.4,fill:false,pointRadius:0},
+      ],
+      yLabel:'ops/s'
+    },
+    {
+      id: 'chart-conn', type: 'line',
+      datasets: [
+        {label:'Current',   data:randSeries(N,340,40,0),  borderColor:'#00ED64',backgroundColor:'rgba(0,237,100,.08)',tension:.4,fill:true,pointRadius:0},
+        {label:'Available', data:randSeries(N,800,20,0), borderColor:'#C1C7C6',tension:.4,fill:false,pointRadius:0,borderDash:[4,4]},
+      ],
+      yLabel:'conn'
+    },
+    {
+      id: 'chart-iops', type: 'bar',
+      datasets: [
+        {label:'Read IOPS',  data:randSeries(N,620,120,0),backgroundColor:'rgba(0,237,100,.7)'},
+        {label:'Write IOPS', data:randSeries(N,310,80,0), backgroundColor:'rgba(1,99,255,.6)'},
+      ],
+      yLabel:'IOPS'
+    },
+    {
+      id: 'chart-net', type: 'line',
+      datasets: [
+        {label:'In',  data:randSeries(N,12,3,0),borderColor:'#00ED64',backgroundColor:'rgba(0,237,100,.08)',tension:.4,fill:true,pointRadius:0},
+        {label:'Out', data:randSeries(N,8,2,0), borderColor:'#0163FF',tension:.4,fill:false,pointRadius:0},
+      ],
+      yLabel:'MB/s'
+    },
+    {
+      id: 'chart-lag', type: 'line',
+      datasets: [
+        {label:'node-02 lag',data:randSeries(N,0.6,0.4,0),borderColor:'#F5A623',backgroundColor:'rgba(245,166,35,.1)',tension:.4,fill:true,pointRadius:0},
+        {label:'node-03 lag',data:randSeries(N,0.2,0.15,0),borderColor:'#0163FF',tension:.4,fill:false,pointRadius:0},
+      ],
+      yLabel:'sec'
+    },
+    {
+      id: 'chart-cache', type: 'line',
+      datasets: [
+        {label:'Used',  data:randSeries(N,3.2,0.3,0),borderColor:'#00ED64',backgroundColor:'rgba(0,237,100,.08)',tension:.4,fill:true,pointRadius:0},
+        {label:'Dirty', data:randSeries(N,0.4,0.15,0),borderColor:'#DB3030',tension:.4,fill:false,pointRadius:0},
+      ],
+      yLabel:'GB', yMax:4
+    },
+  ];
+
+  // Rebuild per-node chart datasets to match the currently selected cluster
+  function rebuildPerNodeDatasets() {
+    const palette = ['#00ED64','#F5A623','#0163FF','#7E22CE','#DB3030','#00684A','#0EA5E9'];
+    const sel = document.getElementById('monitoring-cluster-sel');
+    const c = clusterStore.find(x=>x.id===(sel&&sel.value)) || clusterStore[0];
+    if (!c) return;
+
+    // CPU — one line per node
+    const cpuDef = chartDefs.find(d=>d.id==='chart-cpu');
+    if (cpuDef) {
+      cpuDef.datasets = c.nodes.map((n,i)=>{
+        const short = n.host.split(':')[0].split('.')[0];
+        return {label:short, data:randSeries(N, 35+Math.random()*25, 12, 0),
+          borderColor:palette[i%palette.length],
+          backgroundColor:i===0?'rgba(0,237,100,.08)':'transparent',
+          tension:.4, fill:i===0, pointRadius:0};
+      });
+    }
+    // Replication lag — one line per SECONDARY (none for standalone/single node)
+    const lagDef = chartDefs.find(d=>d.id==='chart-lag');
+    if (lagDef) {
+      const secs = c.nodes.filter(n=>/SECONDARY/i.test(n.role));
+      lagDef.datasets = secs.length ? secs.map((n,i)=>{
+        const short = n.host.split(':')[0].split('.')[0];
+        return {label:short+' lag', data:randSeries(N, 0.2+Math.random()*0.4, 0.3, 0),
+          borderColor:palette[(i+1)%palette.length],
+          backgroundColor:i===0?'rgba(245,166,35,.1)':'transparent', tension:.4, fill:i===0, pointRadius:0};
+      }) : [{label:'No secondaries (single node)', data:randSeries(N,0,0,0), borderColor:'#C1C7C6', tension:.4, fill:false, pointRadius:0}];
+    }
+  }
+
+  function buildCharts() {
+    rebuildPerNodeDatasets();
+    chartDefs.forEach(def => {
+      const canvas = document.getElementById(def.id);
+      if (!canvas) return;
+      if (chartInstances[def.id]) { chartInstances[def.id].destroy(); }
+      chartInstances[def.id] = new Chart(canvas, {
+        type: def.type,
+        data: { labels, datasets: def.datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: {duration: 400},
+          interaction: {mode:'index', intersect:false},
+          plugins: {
+            legend: {labels:{color:'#5C6C75',font:{size:11},boxWidth:12,padding:10}},
+            tooltip: {backgroundColor:'#001E2B', titleColor:'#fff', bodyColor:'#C1C7C6'}
+          },
+          scales: {
+            x: {
+              grid:{color:'rgba(0,0,0,.04)'}, ticks:{color:'#889397',font:{size:10},maxTicksLimit:8},
+              border:{color:'#E8EDEB'}
+            },
+            y: {
+              grid:{color:'rgba(0,0,0,.04)'}, ticks:{color:'#889397',font:{size:10}},
+              border:{color:'#E8EDEB'},
+              ...(def.yMax ? {max:def.yMax} : {}),
+              min: 0
+            }
+          }
+        }
+      });
+    });
+  }
+
+  function updateCharts() {
+    // Re-seed data with new random values
+    chartDefs.forEach(def => {
+      if (!chartInstances[def.id]) return;
+      def.datasets.forEach((ds, i) => {
+        const base = chartInstances[def.id].data.datasets[i].data[0];
+        chartInstances[def.id].data.datasets[i].data = randSeries(N, base, base*0.15, 0);
+      });
+      chartInstances[def.id].update();
+    });
+  }
+
+  // Populate the cluster dropdown from the live store
+  function renderMonitoringClusterOptions() {
+    const sel = document.getElementById('monitoring-cluster-sel');
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = clusterStore.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    if (clusterStore.find(c=>c.id===prev)) sel.value = prev;
+  }
+
+  // Render node tabs for the currently selected cluster
+  function renderNodeTabs(clusterId) {
+    const cont = document.getElementById('monitoring-node-tabs');
+    if (!cont) return;
+    const c = clusterStore.find(x=>x.id===clusterId) || clusterStore[0];
+    if (!c) { cont.innerHTML=''; return; }
+    const roleShort = r => r==='PRIMARY'?'P' : r==='SECONDARY'?'S' : r==='Shard PRIMARY'?'Shard-P'
+                        : r==='Config Server'?'Cfg' : r==='mongos'?'mongos' : r;
+    let tabs = '';
+    // "All Nodes" only makes sense for multi-node clusters
+    if (c.nodes.length > 1) {
+      tabs += `<button class="node-tab active" onclick="selectNodeTab(this)">All Nodes</button>`;
+    }
+    c.nodes.forEach((n,i)=>{
+      const short = n.host.split(':')[0].split('.')[0];
+      const active = (c.nodes.length===1 && i===0) ? 'active' : '';
+      tabs += `<button class="node-tab ${active}" onclick="selectNodeTab(this)">${short} (${roleShort(n.role)})</button>`;
+    });
+    cont.innerHTML = tabs;
+  }
+
+  function switchMonitoringCluster(id) {
+    const c = clusterStore.find(x=>x.id===id);
+    const sub = document.getElementById('monitoring-subtitle');
+    if (sub && c) sub.textContent = `Real-time monitoring · ${c.name} (${c.nodes.length} node${c.nodes.length>1?'s':''})`;
+    renderNodeTabs(id);
+    if (document.getElementById('section-monitoring').classList.contains('active')) buildCharts();
+  }
+
+  function selectNodeTab(el) {
+    document.querySelectorAll('#monitoring-node-tabs .node-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    updateCharts();
+  }
+
+  // (showSection is defined once below — monitoring charts are built there)
+
+  // Live ticker for monitoring pills
+  setInterval(() => {
+    const el = id => document.getElementById(id);
+    if (el('live-conn')) {
+      el('live-conn').textContent  = (330 + Math.floor(Math.random()*40)).toLocaleString();
+      el('live-reads').textContent = (1100 + Math.floor(Math.random()*300)).toLocaleString();
+      el('live-writes').textContent= (350 + Math.floor(Math.random()*80)).toLocaleString();
+      el('live-cache').textContent = (96 + Math.random()*2).toFixed(1) + '%';
+      el('live-lag').textContent   = (Math.random()*1.2).toFixed(2) + 's';
+      el('live-netin').textContent = (10 + Math.random()*5).toFixed(1) + ' MB/s';
+      el('live-netout').textContent= (6 + Math.random()*4).toFixed(1) + ' MB/s';
+    }
+  }, 2000);
+
+  // Populate agents table
+  const agentHosts = [
+    ['mongo-node-01.mongodb-brazil.internal', 'Running', '12.0.27', 'Automation + Monitoring + Backup', '5s ago', 'rs-prod-01'],
+    ['mongo-node-02.mongodb-brazil.internal', 'Running', '12.0.27', 'Automation + Monitoring + Backup', '5s ago', 'rs-prod-01'],
+    ['mongo-node-03.mongodb-brazil.internal', 'Running', '12.0.27', 'Automation + Monitoring + Backup', '7s ago', 'rs-prod-01'],
+    ['mongos-01.mongodb-brazil.internal',     'Running', '12.0.27', 'Automation + Monitoring',          '4s ago', 'sharded-analytics'],
+    ['shard-01-n1.mongodb-brazil.internal',   'Running', '12.0.27', 'Automation + Monitoring + Backup', '6s ago', 'sharded-analytics'],
+    ['shard-01-n2.mongodb-brazil.internal',   'Running', '12.0.27', 'Automation + Monitoring + Backup', '6s ago', 'sharded-analytics'],
+    ['shard-02-n1.mongodb-brazil.internal',   'Running', '12.0.27', 'Automation + Monitoring + Backup', '5s ago', 'sharded-analytics'],
+    ['shard-02-n2.mongodb-brazil.internal',   'Running', '12.0.27', 'Automation + Monitoring + Backup', '8s ago', 'sharded-analytics'],
+    ['configsvr-01.mongodb-brazil.internal',  'Running', '12.0.27', 'Automation + Monitoring',          '5s ago', 'sharded-analytics'],
+    ['stg-mongo-01.mongodb-brazil.internal',  'Running', '12.0.27', 'Automation + Monitoring + Backup', '9s ago', 'rs-staging'],
+    ['stg-mongo-02.mongodb-brazil.internal',  'Running', '12.0.27', 'Automation + Monitoring + Backup', '9s ago', 'rs-staging'],
+    ['dev-mongo.mongodb-brazil.internal',     'Running', '12.0.27', 'Automation + Monitoring',          '12s ago','mongo-dev-01'],
+  ];
+  const tbody = document.getElementById('agents-tbody');
+  if (tbody) {
+    agentHosts.forEach(([host, status, ver, type, ping, cluster]) => {
+      tbody.innerHTML += `<tr>
+        <td><b>${host}</b></td>
+        <td><span class="pill pill-green">● ${status}</span></td>
+        <td>${ver} <span class="pill pill-yellow" style="font-size:10px">update</span></td>
+        <td style="font-size:12px;color:var(--gray5)">${type}</td>
+        <td>${ping}</td>
+        <td>${cluster}</td>
+        <td><button class="icon-btn" onclick="openModal('modal-agent-logs')">Logs</button>
+            <button class="icon-btn" onclick="upgradeOneAgent('${host}')">Upgrade</button></td>
+      </tr>`;
+    });
+  }
+</script>
+</body>
+</html>

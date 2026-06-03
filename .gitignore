@@ -1,0 +1,19 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Preview/launch artifacts
+.claude/
+
+# Logs
+*.log
+
+# Material interno / slides — NÃO publicar em repo público
+*.pdf
+*.pptx
+*.key
