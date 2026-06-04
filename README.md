@@ -10,6 +10,10 @@ Criada para apoiar o time da **MongoDB Brazil** no posicionamento da solução *
 ![stack](https://img.shields.io/badge/stack-HTML%20%7C%20CSS%20%7C%20JS%20puro-001E2B)
 ![deps](https://img.shields.io/badge/depend%C3%AAncias-apenas%20Chart.js%20(CDN)-blue)
 
+### 👉 [**Abrir a demo ao vivo**](https://adrianofratelli-glitch.github.io/OpsMgr-Web/) 👈
+
+*Nenhuma instalação necessária — abre direto no navegador.*
+
 </div>
 
 ---
@@ -61,12 +65,15 @@ A interface simula um fluxo **real** do Ops Manager, com estado gerenciado em me
 
 ## 🚀 Como executar
 
-Não precisa instalar nada. Há 3 formas:
+Não precisa instalar nada. Há 4 formas:
 
-### Opção 1 — Abrir direto (mais simples)
+### Opção 1 — Demo ao vivo (mais fácil) ⭐
+Abra **[https://adrianofratelli-glitch.github.io/OpsMgr-Web/](https://adrianofratelli-glitch.github.io/OpsMgr-Web/)** no navegador. Pronto.
+
+### Opção 2 — Abrir o arquivo local
 Basta dar **duplo-clique** no arquivo `index.html`.
 
-### Opção 2 — Servidor local (recomendado)
+### Opção 3 — Servidor local
 Garante que o Chart.js (via CDN) carregue corretamente:
 
 ```bash
@@ -76,7 +83,7 @@ python3 -m http.server 4599
 # http://localhost:4599/index.html
 ```
 
-### Opção 3 — Atalho de terminal (macOS/Linux)
+### Opção 4 — Atalho de terminal (macOS/Linux)
 O repositório inclui um launcher pronto:
 
 ```bash
