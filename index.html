@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>MongoDB Ops Manager</title>
+<title>MongoDB Ops Manager — Demo · MongoDB Brazil</title>
+<meta name="description" content="Demo interativa do MongoDB Ops Manager — Enterprise Advanced"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%2300684A'/%3E%3Cpath d='M20 6c0 0-9 7.5-9 16a9 9 0 0018 0C29 13.5 20 6 20 6z' fill='%2300ED64'/%3E%3C/svg%3E"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root {
@@ -402,6 +404,47 @@
     .page-title { font-size: 18px; }
   }
   .menu-toggle { display: none; background: none; border: none; color: #fff; cursor: pointer; padding: 4px; margin-right: 4px; }
+
+  /* ── GLOBAL SEARCH ── */
+  .global-search { position: relative; flex: 1; max-width: 360px; }
+  .global-search input {
+    width: 100%; padding: 7px 12px 7px 32px; border-radius: var(--radius);
+    border: 1px solid #334155; background: #0a2d3d; color: #fff; font-size: 13px; outline: none;
+  }
+  .global-search input::placeholder { color: #6b7d86; }
+  .global-search input:focus { border-color: var(--green); }
+  .global-search .gs-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #6b7d86; pointer-events: none; }
+  .gs-results {
+    display: none; position: absolute; top: 110%; left: 0; right: 0; background: var(--card);
+    border: 1px solid var(--gray2); border-radius: var(--radius); box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    max-height: 380px; overflow-y: auto; z-index: 400;
+  }
+  .gs-results.open { display: block; }
+  .gs-cat { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--gray4); padding: 8px 14px 4px; }
+  .gs-item { padding: 8px 14px; cursor: pointer; font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+  .gs-item:hover, .gs-item.sel { background: var(--gray1); }
+  .gs-item .gs-type { margin-left: auto; font-size: 11px; color: var(--gray4); }
+  .gs-empty { padding: 16px; text-align: center; color: var(--gray4); font-size: 13px; }
+  @media (max-width: 860px) { .global-search { display: none; } }
+
+  /* ── SKELETON LOADER ── */
+  .skeleton-row { display:flex; gap:12px; padding:12px 14px; align-items:center; }
+  .skel { background: linear-gradient(90deg, var(--gray2) 25%, var(--gray1) 50%, var(--gray2) 75%);
+    background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 4px; height: 14px; }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* ── TOUR ── */
+  .tour-backdrop { display:none; position:fixed; inset:0; background:rgba(0,30,43,.55); z-index:600; }
+  .tour-backdrop.open { display:block; }
+  .tour-pop {
+    position:fixed; z-index:601; background:var(--card); border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,.35);
+    width:320px; padding:18px; border:2px solid var(--green);
+  }
+  .tour-pop h4 { font-size:15px; color:var(--text-main); margin-bottom:6px; }
+  .tour-pop p { font-size:13px; color:var(--gray5); line-height:1.5; margin-bottom:14px; }
+  .tour-pop .tour-nav { display:flex; align-items:center; gap:8px; }
+  .tour-step-count { font-size:12px; color:var(--gray4); margin-right:auto; }
+  .tour-highlight { position:relative; z-index:601 !important; box-shadow:0 0 0 4px var(--green), 0 0 0 9999px rgba(0,30,43,.55); border-radius:6px; }
 </style>
 </head>
 <body>
@@ -421,6 +464,15 @@
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
   </div>
   <div class="topbar-sep"></div>
+  <div class="global-search">
+    <span class="gs-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </span>
+    <input id="global-search-input" placeholder="Buscar clusters, hosts, usuários, alertas…" autocomplete="off"
+           oninput="runGlobalSearch(this.value)" onkeydown="globalSearchKey(event)" onfocus="runGlobalSearch(this.value)"/>
+    <div class="gs-results" id="gs-results"></div>
+  </div>
+  <button class="topbar-btn" onclick="startTour()" title="Tour guiado" style="padding:5px 10px">🎬 Tour</button>
   <button class="topbar-btn" onclick="openModal('modal-deploy')">+ New Deployment</button>
   <button class="topbar-btn" id="theme-toggle" onclick="toggleTheme()" title="Alternar tema" style="padding:5px 10px">🌙</button>
   <div class="topbar-notif" title="Alerts" onclick="showSection('alerts',document.getElementById('nav-alerts'))" style="cursor:pointer">
@@ -475,7 +527,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Metrics
       </div>
-      <div class="nav-item" onclick="showSection('perf-advisor', this)">
+      <div class="nav-item" id="nav-perf" onclick="showSection('perf-advisor', this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
         Performance Advisor
         <span class="badge warn">4</span>
@@ -493,7 +545,7 @@
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Data Protection</div>
-      <div class="nav-item" onclick="showSection('backup', this)">
+      <div class="nav-item" id="nav-backup" onclick="showSection('backup', this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Backup
         <span class="badge warn">1</span>
@@ -514,7 +566,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         Roles
       </div>
-      <div class="nav-item" onclick="showSection('security-auth', this)">
+      <div class="nav-item" id="nav-security" onclick="showSection('security-auth', this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
         Authentication
       </div>
@@ -1571,6 +1623,18 @@
 
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
+
+<!-- TOUR -->
+<div class="tour-backdrop" id="tour-backdrop" onclick="endTour()"></div>
+<div class="tour-pop" id="tour-pop" style="display:none">
+  <h4 id="tour-title"></h4>
+  <p id="tour-text"></p>
+  <div class="tour-nav">
+    <span class="tour-step-count" id="tour-count"></span>
+    <button class="btn btn-secondary" style="padding:5px 12px;font-size:12px" onclick="endTour()">Pular</button>
+    <button class="btn btn-primary" style="padding:5px 12px;font-size:12px" id="tour-next" onclick="tourNext()">Próximo →</button>
+  </div>
+</div>
 
 <!-- ══════════ MODAL: Progress ══════════ -->
 <div class="modal-overlay" id="modal-progress">
@@ -3204,6 +3268,130 @@
     let t='light'; try{ t = localStorage.getItem('opsmgr-demo-theme')||'light'; }catch(e){}
     applyTheme(t);
   })();
+
+  // ══════════════════════════════════════════════════
+  // GLOBAL SEARCH
+  // ══════════════════════════════════════════════════
+  let gsSelIndex = -1, gsFlat = [];
+  function runGlobalSearch(q) {
+    const box = document.getElementById('gs-results');
+    q = (q||'').trim().toLowerCase();
+    if (!q) { box.classList.remove('open'); box.innerHTML=''; return; }
+
+    const results = { Clusters:[], Hosts:[], Users:[], Alerts:[], Páginas:[] };
+    clusterStore.forEach(c=>{
+      if (c.name.toLowerCase().includes(q) || c.type.includes(q))
+        results.Clusters.push({label:c.name, type:c.type, action:()=>{showSection('deployments',null);}});
+      c.nodes.forEach(n=>{ if (n.host.toLowerCase().includes(q))
+        results.Hosts.push({label:n.host, type:n.role, action:()=>{showSection('deployments',null);}}); });
+    });
+    usersStore.forEach(u=>{ if (u.name.toLowerCase().includes(q))
+      results.Users.push({label:u.name, type:u.auth, action:()=>{showSection('security-users',null);}}); });
+    openAlerts.forEach(a=>{ if (a.title.toLowerCase().includes(q)||a.target.toLowerCase().includes(q))
+      results.Alerts.push({label:a.title, type:a.target, action:()=>{showSection('alerts',document.getElementById('nav-alerts'));}}); });
+    const pages = [['Dashboard','dashboard'],['Deployments','deployments'],['Automation','automation'],
+      ['Metrics','monitoring'],['Performance Advisor','perf-advisor'],['Real-Time','realtime'],['Alerts','alerts'],
+      ['Backup','backup'],['Restore','restore'],['Users','security-users'],['Roles','security-roles'],
+      ['Authentication','security-auth'],['Audit Log','security-audit'],['Agents','admin-agents']];
+    pages.forEach(([name,id])=>{ if (name.toLowerCase().includes(q))
+      results.Páginas.push({label:name, type:'página', action:()=>{showSection(id,null);}}); });
+
+    gsFlat = []; let html = '';
+    Object.entries(results).forEach(([cat,items])=>{
+      if (!items.length) return;
+      html += `<div class="gs-cat">${cat}</div>`;
+      items.slice(0,6).forEach(it=>{
+        const idx = gsFlat.length; gsFlat.push(it);
+        html += `<div class="gs-item" data-idx="${idx}" onmousedown="gsPick(${idx})">${it.label}<span class="gs-type">${it.type}</span></div>`;
+      });
+    });
+    if (!gsFlat.length) html = '<div class="gs-empty">Nenhum resultado encontrado</div>';
+    box.innerHTML = html; box.classList.add('open'); gsSelIndex = -1;
+  }
+  function gsPick(idx) {
+    const it = gsFlat[idx]; if (!it) return;
+    document.getElementById('gs-results').classList.remove('open');
+    document.getElementById('global-search-input').value = '';
+    it.action();
+  }
+  function globalSearchKey(e) {
+    const box = document.getElementById('gs-results');
+    if (!box.classList.contains('open')) return;
+    if (e.key==='ArrowDown'){ e.preventDefault(); gsSelIndex=Math.min(gsSelIndex+1,gsFlat.length-1); }
+    else if (e.key==='ArrowUp'){ e.preventDefault(); gsSelIndex=Math.max(gsSelIndex-1,0); }
+    else if (e.key==='Enter'){ e.preventDefault(); if(gsSelIndex>=0) gsPick(gsSelIndex); else if(gsFlat.length) gsPick(0); return; }
+    else if (e.key==='Escape'){ box.classList.remove('open'); return; }
+    box.querySelectorAll('.gs-item').forEach((el,i)=>el.classList.toggle('sel', i===gsSelIndex));
+  }
+  document.addEventListener('click', e=>{
+    if (!e.target.closest('.global-search')) document.getElementById('gs-results')?.classList.remove('open');
+  });
+
+  // ══════════════════════════════════════════════════
+  // SKELETON LOADER
+  // ══════════════════════════════════════════════════
+  function showSkeleton(containerId, rows=5) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    c.innerHTML = `<div class="card"><div class="card-body">` +
+      Array.from({length:rows}).map(()=>`<div class="skeleton-row">
+        <div class="skel" style="width:18%"></div><div class="skel" style="width:30%"></div>
+        <div class="skel" style="width:15%"></div><div class="skel" style="width:20%"></div>
+        <div class="skel" style="width:10%"></div></div>`).join('') + `</div></div>`;
+  }
+
+  // ══════════════════════════════════════════════════
+  // GUIDED TOUR (modo apresentador)
+  // ══════════════════════════════════════════════════
+  const tourSteps = [
+    {sel:'.topbar-logo', title:'Bem-vindo ao Ops Manager', text:'Esta é uma demo interativa do MongoDB Ops Manager, parte do Enterprise Advanced. Vou te mostrar os destaques em poucos passos.', section:'dashboard'},
+    {sel:'#dash-cluster-grid', title:'Dashboard', text:'Visão consolidada de todos os clusters, status de saúde, alertas e backups — tudo num só lugar.', section:'dashboard'},
+    {sel:'.topbar-btn', title:'Provisionamento automatizado', text:'Com "+ New Deployment" você provisiona um Replica Set ou Sharded Cluster inteiro — o Ops Manager orquestra os agents e a configuração.', section:'dashboard'},
+    {sel:'#nav-perf', title:'Performance Advisor', text:'Um dos maiores diferenciais do Enterprise Advanced: sugestões automáticas de índice e análise de slow queries.', section:'perf-advisor'},
+    {sel:'#nav-backup', title:'Backup contínuo & PITR', text:'Snapshots automatizados e Point-in-Time Recovery — restaure para qualquer segundo dentro da janela de oplog.', section:'backup'},
+    {sel:'#nav-security', title:'Segurança Enterprise', text:'LDAP, x.509, Kerberos, criptografia em repouso e Audit Log completo — requisitos de clientes enterprise.', section:'security-auth'},
+    {sel:'#theme-toggle', title:'Pronto!', text:'Explore à vontade. Use o Reset Demo (menu do avatar) para restaurar o estado inicial entre apresentações. Boa demo! 💚', section:'dashboard'},
+  ];
+  let tourIdx = 0;
+  function startTour() {
+    tourIdx = 0;
+    document.getElementById('tour-backdrop').classList.add('open');
+    document.getElementById('tour-pop').style.display = 'block';
+    renderTourStep();
+  }
+  function renderTourStep() {
+    const step = tourSteps[tourIdx];
+    if (step.section) showSection(step.section, null);
+    document.querySelectorAll('.tour-highlight').forEach(e=>e.classList.remove('tour-highlight'));
+    setTimeout(()=>{
+      const target = document.querySelector(step.sel);
+      document.getElementById('tour-title').textContent = step.title;
+      document.getElementById('tour-text').textContent = step.text;
+      document.getElementById('tour-count').textContent = `Passo ${tourIdx+1} de ${tourSteps.length}`;
+      document.getElementById('tour-next').textContent = tourIdx===tourSteps.length-1 ? 'Finalizar ✓' : 'Próximo →';
+      const pop = document.getElementById('tour-pop');
+      if (target) {
+        target.classList.add('tour-highlight');
+        target.scrollIntoView({block:'center', behavior:'smooth'});
+        const r = target.getBoundingClientRect();
+        let top = r.bottom + 12, left = r.left;
+        if (top + 200 > window.innerHeight) top = Math.max(12, r.top - 212);
+        if (left + 320 > window.innerWidth) left = window.innerWidth - 332;
+        pop.style.top = top + 'px'; pop.style.left = Math.max(12,left) + 'px';
+      } else {
+        pop.style.top = '50%'; pop.style.left = '50%'; pop.style.transform='translate(-50%,-50%)';
+      }
+    }, 120);
+  }
+  function tourNext() {
+    if (tourIdx >= tourSteps.length-1) { endTour(); toast('Tour concluído','Agora é com você! 🚀','success'); return; }
+    tourIdx++; document.getElementById('tour-pop').style.transform=''; renderTourStep();
+  }
+  function endTour() {
+    document.getElementById('tour-backdrop').classList.remove('open');
+    document.getElementById('tour-pop').style.display = 'none';
+    document.querySelectorAll('.tour-highlight').forEach(e=>e.classList.remove('tour-highlight'));
+  }
 
   // ── INIT ──
   hydrateState();
