@@ -37,8 +37,18 @@ A interface simula um fluxo **real** do Ops Manager, com estado gerenciado em me
 | 📊 **Monitoring** | 8 gráficos (Chart.js) com métricas ao vivo, abas dinâmicas por nó do cluster |
 | 💾 **Backup & Restore** | Snapshots, políticas de retenção, **Point-in-Time Recovery** com timeline de oplog |
 | 🔔 **Alerts** | Alertas abertos/fechados, thresholds configuráveis, múltiplos canais de notificação |
+| ⚡ **Performance Advisor** | Sugestões automáticas de índice por impacto + análise de slow queries (criar índice anima o build) |
+| ⏱️ **Real-Time Panel** | Operações ao vivo (ops/s, conexões, network), ops em progresso e hottest collections atualizando a cada segundo |
 | 🔐 **Security** | Database Users, Custom Roles (RBAC), Autenticação (SCRAM/x.509/LDAP/Kerberos), TLS, Encryption at Rest, IP Access List |
 | 📋 **Audit Log** | Eventos de autenticação, autorização e DDL filtráveis |
+| 🔌 **Connect** | Connection string SRV, comando mongosh e snippets de 5 drivers (Node, Python, Java, C#, Go) |
+
+### Recursos de UX
+- 🌙 **Dark Mode** com preferência salva
+- 🔍 **Busca global** (clusters, hosts, usuários, alertas, páginas) com navegação por teclado
+- 🎬 **Tour guiado** (modo apresentador) — destaca recursos passo a passo, ideal para demos
+- 💾 **Persistência** — o estado sobrevive a refreshs (localStorage); botão **Reset Demo** restaura o inicial
+- 📱 **Responsivo** — funciona em telas menores com menu lateral retrátil
 
 ### Fluxos totalmente funcionais
 - 🚀 **Provisionar cluster** → modal de progresso animado (contata agents → configura mongod → inicia replica set → habilita monitoring/backup) → cluster aparece no Dashboard
