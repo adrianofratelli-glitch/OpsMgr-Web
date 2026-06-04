@@ -258,6 +258,29 @@
   /* ── AUTH ROW ── */
   .auth-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--gray2); }
 
+  /* ── CODE BOX (connect modal) ── */
+  .code-box {
+    background:#001E2B; color:#C1FAD9; padding:14px 16px; border-radius:6px;
+    font-family:monospace; font-size:13px; display:flex; align-items:center;
+    justify-content:space-between; gap:12px; word-break:break-all;
+  }
+  .code-box code { flex:1; line-height:1.5; }
+  .copy-btn {
+    background:rgba(255,255,255,.12); color:#fff; border:none; border-radius:4px;
+    padding:5px 10px; font-size:12px; cursor:pointer; white-space:nowrap; transition:background .15s;
+  }
+  .copy-btn:hover { background:rgba(255,255,255,.25); }
+
+  /* ── ACTIVITY MINI BAR (realtime) ── */
+  .mini-bar-wrap { background:var(--gray2); border-radius:3px; height:6px; width:100px; overflow:hidden; display:inline-block; vertical-align:middle; }
+  .mini-bar { height:100%; background:var(--green); border-radius:3px; transition:width .4s; }
+
+  /* ── IMPACT BADGE ── */
+  .impact { font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; text-transform:uppercase; }
+  .impact-high { background:#FDEAEA; color:var(--red); }
+  .impact-med  { background:#FEF3E2; color:#B45309; }
+  .impact-low  { background:#EBF5FF; color:#1A56DB; }
+
   /* ── ORG/PROJECT ITEM ── */
   .org-item { padding:14px 22px; border-bottom:1px solid var(--gray2); cursor:pointer; transition:background .15s; }
   .org-item:last-child { border-bottom:none; }
@@ -401,6 +424,15 @@
       <div class="nav-item" onclick="showSection('monitoring', this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Metrics
+      </div>
+      <div class="nav-item" onclick="showSection('perf-advisor', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
+        Performance Advisor
+        <span class="badge warn">4</span>
+      </div>
+      <div class="nav-item" onclick="showSection('realtime', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Real-Time
       </div>
       <div class="nav-item" id="nav-alerts" onclick="showSection('alerts', this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -718,6 +750,103 @@
         </div>
       </div>
     </div>
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: PERFORMANCE ADVISOR               -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-perf-advisor" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Performance Advisor</div>
+          <div class="page-subtitle">Automatic index suggestions & slow query analysis</div>
+        </div>
+        <div class="page-header-actions">
+          <select class="form-select" style="width:200px" id="pa-cluster-sel" onchange="renderPerfAdvisor()"></select>
+          <button class="btn btn-secondary" onclick="toast('Scan started','Analyzing query patterns from the last 24h…','info');setTimeout(()=>{renderPerfAdvisor();toast('Scan complete','Performance Advisor refreshed.','success')},1500)">↺ Re-scan</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <div class="stat-grid" style="margin-bottom:20px">
+          <div class="stat-card"><div class="stat-label">Index Suggestions</div><div class="stat-value" style="color:var(--yellow)">4</div><div class="stat-sub">High impact opportunities</div></div>
+          <div class="stat-card"><div class="stat-label">Slow Queries (24h)</div><div class="stat-value" style="color:var(--red)">127</div><div class="stat-sub">&gt; 100ms execution</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Query Time</div><div class="stat-value">8.4<span style="font-size:14px">ms</span></div><div class="stat-sub"><span class="stat-badge green">↓ 12% vs ontem</span></div></div>
+          <div class="stat-card"><div class="stat-label">Collections Scanned</div><div class="stat-value">42</div><div class="stat-sub">across all databases</div></div>
+        </div>
+
+        <!-- Index Suggestions -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><div class="card-title">💡 Suggested Indexes</div>
+            <span style="margin-left:auto;font-size:12px;color:var(--gray4)">Ordered by impact</span>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Impact</th><th>Namespace</th><th>Suggested Index</th><th>Affected Queries</th><th>Est. Improvement</th><th>Actions</th></tr></thead>
+              <tbody id="pa-index-list"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Slow Queries -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">🐌 Slowest Queries</div>
+            <span style="margin-left:auto;font-size:12px;color:var(--gray4)">Last 24 hours</span>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="tbl">
+              <thead><tr><th>Namespace</th><th>Query Shape</th><th>Avg Time</th><th>Count</th><th>Docs Examined</th><th>Index Used</th></tr></thead>
+              <tbody id="pa-slow-list"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION: REAL-TIME PERFORMANCE             -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="section-realtime" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Real-Time Performance Panel</div>
+          <div class="page-subtitle">Live operations · updates every second</div>
+        </div>
+        <div class="page-header-actions">
+          <select class="form-select" style="width:200px" id="rt-cluster-sel"></select>
+          <button class="btn btn-secondary" id="rt-toggle-btn" onclick="toggleRealtime()">⏸ Pause</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="stat-grid" style="margin-bottom:20px">
+          <div class="stat-card"><div class="stat-label">Operations / sec</div><div class="stat-value" id="rt-ops">1,842</div><div class="stat-sub" id="rt-ops-bar"></div></div>
+          <div class="stat-card"><div class="stat-label">Active Connections</div><div class="stat-value" id="rt-conn">342</div><div class="stat-sub">of 1,000 max</div></div>
+          <div class="stat-card"><div class="stat-label">Network In/Out</div><div class="stat-value" style="font-size:18px"><span id="rt-netin">12.4</span> / <span id="rt-netout">8.1</span> <span style="font-size:12px">MB/s</span></div></div>
+          <div class="stat-card"><div class="stat-label">Documents / sec</div><div class="stat-value" id="rt-docs">24.8k</div><div class="stat-sub">read + written</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">⚡ Operations In Progress</div></div>
+            <div class="card-body" style="padding:0">
+              <table class="tbl">
+                <thead><tr><th>OpId</th><th>Operation</th><th>Namespace</th><th>Running</th><th>Actions</th></tr></thead>
+                <tbody id="rt-inprogress"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔥 Hottest Collections (live)</div></div>
+            <div class="card-body" style="padding:0">
+              <table class="tbl">
+                <thead><tr><th>Namespace</th><th>Ops/s</th><th>Activity</th></tr></thead>
+                <tbody id="rt-hottest"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══════════════════════════════════════════ -->
     <!-- SECTION: MONITORING                        -->
     <!-- ══════════════════════════════════════════ -->
@@ -1410,6 +1539,45 @@
   </div>
 </div>
 
+<!-- ══════════ MODAL: Connect ══════════ -->
+<div class="modal-overlay" id="modal-connect">
+  <div class="modal" style="width:560px">
+    <div class="modal-header"><div class="modal-title" id="connect-title">Connect to Cluster</div>
+      <button class="modal-close" onclick="closeModal('modal-connect')">×</button></div>
+    <div class="modal-body">
+      <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--gray2)">
+        <button class="alert-tab active" onclick="showConnectTab('string',this)">Connection String</button>
+        <button class="alert-tab" onclick="showConnectTab('mongosh',this)">mongosh</button>
+        <button class="alert-tab" onclick="showConnectTab('driver',this)">Drivers</button>
+      </div>
+
+      <div id="connect-tab-string">
+        <label class="form-label">Standard Connection String (SRV)</label>
+        <div class="code-box"><code id="connect-uri"></code><button class="copy-btn" onclick="copyText('connect-uri')">📋 Copy</button></div>
+        <div style="font-size:12px;color:var(--gray4);margin-top:8px">Use this URI in your application or with any MongoDB driver. TLS is enforced.</div>
+      </div>
+
+      <div id="connect-tab-mongosh" style="display:none">
+        <label class="form-label">Connect with mongosh</label>
+        <div class="code-box"><code id="connect-mongosh"></code><button class="copy-btn" onclick="copyText('connect-mongosh')">📋 Copy</button></div>
+        <div style="font-size:12px;color:var(--gray4);margin-top:8px">Requires <b>mongosh</b> installed locally. You'll be prompted for the password.</div>
+      </div>
+
+      <div id="connect-tab-driver" style="display:none">
+        <label class="form-label">Driver</label>
+        <select class="form-select" id="connect-driver" onchange="renderDriverSnippet()" style="margin-bottom:12px">
+          <option value="node">Node.js</option><option value="python">Python (PyMongo)</option>
+          <option value="java">Java</option><option value="csharp">C#</option><option value="go">Go</option>
+        </select>
+        <div class="code-box"><code id="connect-driver-code"></code><button class="copy-btn" onclick="copyText('connect-driver-code')">📋 Copy</button></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-connect')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════ MODAL: Organization Switcher ══════════ -->
 <div class="modal-overlay" id="modal-org">
   <div class="modal" style="width:400px">
@@ -1989,6 +2157,7 @@
           <span class="cluster-name">${c.name}</span>
           ${statusPill(c.status)}
           <div class="cluster-actions">
+            <button class="icon-btn" onclick="openConnect('${c.id}')">🔌 Connect</button>
             <button class="icon-btn" onclick="showSection('monitoring',null)">📊</button>
             <button class="icon-btn" onclick="openEditCluster('${c.id}')">✎ Edit</button>
             <button class="icon-btn" onclick="terminateCluster('${c.id}')">⏹</button>
@@ -2029,7 +2198,8 @@
           <span class="card-title">${c.name}</span>
           ${statusPill(c.status)}
           <span style="color:var(--gray4);font-size:12px;margin-left:16px">MongoDB ${c.version} · ${c.nodes.length} node${c.nodes.length>1?'s':''}</span>
-          <div style="margin-left:auto;display:flex;gap:6px">
+          <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-primary" style="padding:5px 10px;font-size:12px" onclick="openConnect('${c.id}')">🔌 Connect</button>
             <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="showSection('monitoring',null)">📊 Metrics</button>
             <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="openEditCluster('${c.id}')">✎ Edit</button>
             ${c.type==='rs'?`<button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="openAddNode('${c.id}')">+ Add Node</button>`:''}
@@ -2286,6 +2456,9 @@
     if (id === 'security-users')  renderUsers();
     if (id === 'security-roles')  renderRoles();
     if (id === 'security-audit')  renderAudit();
+    if (id === 'perf-advisor')    renderPerfAdvisor();
+    if (id === 'realtime')        startRealtime();
+    else stopRealtime();
   }
 
   function confirmAction(msg) {
@@ -2749,6 +2922,163 @@
   // ── Misc helpers ──
   function toggleMembersField(type) {
     document.getElementById('members-field').style.display = type==='Standalone' ? 'none' : 'block';
+  }
+
+  // ══════════════════════════════════════════════════
+  // CONNECT MODAL
+  // ══════════════════════════════════════════════════
+  let connectCluster = null;
+  function openConnect(cid) {
+    connectCluster = clusterStore.find(c=>c.id===cid);
+    if (!connectCluster) return;
+    document.getElementById('connect-title').textContent = `Connect to ${connectCluster.name}`;
+    const host = connectCluster.nodes[0].host.split(':')[0];
+    const hostsList = connectCluster.nodes.filter(n=>!/mongos|Config/i.test(n.role)).map(n=>n.host).join(',');
+    const srv = `mongodb+srv://<user>:<password>@${connectCluster.name}.mongodb-brazil.internal/?retryWrites=true&w=majority&tls=true`;
+    document.getElementById('connect-uri').textContent = srv;
+    document.getElementById('connect-mongosh').textContent = `mongosh "mongodb+srv://${connectCluster.name}.mongodb-brazil.internal/" --username <user> --tls`;
+    document.getElementById('connect-driver').value = 'node';
+    renderDriverSnippet();
+    // reset tabs
+    showConnectTab('string', document.querySelector('#modal-connect .alert-tab'));
+    openModal('modal-connect');
+  }
+  function showConnectTab(tab, el) {
+    ['string','mongosh','driver'].forEach(t=>{
+      const node=document.getElementById('connect-tab-'+t); if(node) node.style.display = t===tab?'block':'none';
+    });
+    document.querySelectorAll('#modal-connect .alert-tab').forEach(t=>t.classList.remove('active'));
+    if (el) el.classList.add('active');
+  }
+  function renderDriverSnippet() {
+    const d = document.getElementById('connect-driver').value;
+    const uri = `mongodb+srv://<user>:<password>@${(connectCluster||{name:'cluster'}).name}.mongodb-brazil.internal/`;
+    const snippets = {
+      node: `const { MongoClient } = require('mongodb');\nconst client = new MongoClient("${uri}");\nawait client.connect();\nconst db = client.db("mydb");`,
+      python: `from pymongo import MongoClient\nclient = MongoClient("${uri}")\ndb = client["mydb"]`,
+      java: `MongoClient client = MongoClients.create(\n  "${uri}");\nMongoDatabase db = client.getDatabase("mydb");`,
+      csharp: `var client = new MongoClient(\n  "${uri}");\nvar db = client.GetDatabase("mydb");`,
+      go: `client, _ := mongo.Connect(ctx,\n  options.Client().ApplyURI("${uri}"))\ndb := client.Database("mydb")`,
+    };
+    document.getElementById('connect-driver-code').textContent = snippets[d];
+  }
+  function copyText(id) {
+    const txt = document.getElementById(id).textContent;
+    navigator.clipboard?.writeText(txt).then(
+      ()=>toast('Copiado!','Connection string copiada para a área de transferência.','success',2500),
+      ()=>toast('Copiado','Selecione e copie manualmente.','info')
+    );
+  }
+
+  // ══════════════════════════════════════════════════
+  // PERFORMANCE ADVISOR
+  // ══════════════════════════════════════════════════
+  const paIndexSuggestions = [
+    {impact:'high', ns:'app_db.orders',      idx:'{ customerId: 1, createdAt: -1 }', queries:42, improvement:'~95% faster (12,400 → 8 docs)'},
+    {impact:'high', ns:'app_db.sessions',    idx:'{ userId: 1, expiresAt: 1 }',      queries:38, improvement:'~88% faster (COLLSCAN → IXSCAN)'},
+    {impact:'med',  ns:'analytics.events',   idx:'{ eventType: 1, timestamp: -1 }',  queries:21, improvement:'~70% faster'},
+    {impact:'med',  ns:'app_db.products',    idx:'{ category: 1, price: 1 }',        queries:15, improvement:'~60% faster (sort in memory removed)'},
+  ];
+  const paSlowQueries = [
+    {ns:'app_db.orders',    shape:'{ customerId: ?, status: ? }',     time:'412ms', count:1240, examined:'12,400', idx:'COLLSCAN'},
+    {ns:'app_db.sessions',  shape:'{ userId: ? }',                    time:'287ms', count:980,  examined:'8,900',  idx:'COLLSCAN'},
+    {ns:'analytics.events', shape:'{ eventType: ?, timestamp: {$gt:?} }', time:'196ms', count:540, examined:'45,000', idx:'timestamp_1'},
+    {ns:'app_db.products',  shape:'{ category: ? } sort { price: 1 }', time:'154ms', count:310,  examined:'6,200',  idx:'category_1'},
+    {ns:'app_db.users',     shape:'{ email: ? }',                     time:'98ms',  count:2100, examined:'1',      idx:'email_1 ✓'},
+  ];
+  function impactBadge(i){ return `<span class="impact impact-${i==='high'?'high':i==='med'?'med':'low'}">${i==='high'?'High':i==='med'?'Medium':'Low'}</span>`; }
+
+  function renderPerfAdvisor() {
+    const sel = document.getElementById('pa-cluster-sel');
+    if (sel && !sel.options.length) sel.innerHTML = clusterStore.map(c=>`<option>${c.name}</option>`).join('');
+    const il = document.getElementById('pa-index-list');
+    if (il) il.innerHTML = paIndexSuggestions.map((s,i)=>`
+      <tr>
+        <td>${impactBadge(s.impact)}</td>
+        <td><code>${s.ns}</code></td>
+        <td><code style="color:var(--dark-green)">${s.idx}</code></td>
+        <td>${s.queries} queries</td>
+        <td style="font-size:12px;color:var(--dark-green)">${s.improvement}</td>
+        <td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="createSuggestedIndex(${i},this)">+ Create Index</button></td>
+      </tr>`).join('');
+    const sl = document.getElementById('pa-slow-list');
+    if (sl) sl.innerHTML = paSlowQueries.map(q=>`
+      <tr>
+        <td><code>${q.ns}</code></td>
+        <td><code style="font-size:12px">${q.shape}</code></td>
+        <td style="color:${parseInt(q.time)>200?'var(--red)':parseInt(q.time)>100?'var(--yellow)':'var(--gray5)'};font-weight:600">${q.time}</td>
+        <td>${q.count}</td>
+        <td>${q.examined}</td>
+        <td>${q.idx.includes('✓')?`<span class="pill pill-green">${q.idx}</span>`:q.idx==='COLLSCAN'?`<span class="pill pill-red">${q.idx}</span>`:`<span class="pill pill-yellow">${q.idx}</span>`}</td>
+      </tr>`).join('');
+  }
+  function createSuggestedIndex(i, btn) {
+    const s = paIndexSuggestions[i];
+    const steps = [
+      {label:'Building index in background', doing:`Creating ${s.idx} on ${s.ns}…`, done:'Index built', dur:1800},
+      {label:'Validating index',             doing:'Verifying index health…',        done:'Index active', dur:700},
+    ];
+    runProgress(`Creating index on ${s.ns}`, steps, ()=>{
+      paIndexSuggestions.splice(i,1);
+      renderPerfAdvisor();
+      toast('Index created!', `${s.idx} created on ${s.ns}. Queries will now use IXSCAN.`, 'success', 6000);
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // REAL-TIME PERFORMANCE PANEL
+  // ══════════════════════════════════════════════════
+  let rtTimer = null, rtPaused = false;
+  const rtOpTypes = ['query','insert','update','getmore','command','aggregate'];
+  const rtNamespaces = ['app_db.orders','app_db.sessions','analytics.events','app_db.products','app_db.users'];
+  function rtRand(min,max){ return Math.floor(min + Math.random()*(max-min)); }
+
+  function renderRealtimeOnce() {
+    const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+    set('rt-ops', rtRand(1500,2200).toLocaleString());
+    set('rt-conn', rtRand(320,380));
+    set('rt-netin', (10+Math.random()*5).toFixed(1));
+    set('rt-netout', (6+Math.random()*4).toFixed(1));
+    set('rt-docs', (20+Math.random()*10).toFixed(1)+'k');
+    const opsBar = document.getElementById('rt-ops-bar');
+    if (opsBar) opsBar.innerHTML = `<span class="mini-bar-wrap"><span class="mini-bar" style="width:${rtRand(50,95)}%"></span></span>`;
+    // ops in progress
+    const ip = document.getElementById('rt-inprogress');
+    if (ip) {
+      const n = rtRand(2,5);
+      ip.innerHTML = Array.from({length:n},()=>{
+        const op = rtOpTypes[rtRand(0,rtOpTypes.length)];
+        const ns = rtNamespaces[rtRand(0,rtNamespaces.length)];
+        const secs = (Math.random()*2).toFixed(2);
+        return `<tr><td><code>${rtRand(10000,99999)}</code></td>
+          <td><span class="pill ${op==='query'?'pill-blue':op==='insert'?'pill-green':'pill-gray'}">${op}</span></td>
+          <td><code style="font-size:12px">${ns}</code></td><td>${secs}s</td>
+          <td><button class="icon-btn" onclick="toast('Operation killed','db.killOp() sent.','warning')">Kill</button></td></tr>`;
+      }).join('');
+    }
+    // hottest collections
+    const hot = document.getElementById('rt-hottest');
+    if (hot) {
+      const rows = rtNamespaces.map(ns=>({ns, ops:rtRand(50,600)})).sort((a,b)=>b.ops-a.ops);
+      const max = rows[0].ops;
+      hot.innerHTML = rows.map(r=>`<tr><td><code>${r.ns}</code></td><td><b>${r.ops}</b></td>
+        <td><span class="mini-bar-wrap"><span class="mini-bar" style="width:${Math.round(r.ops/max*100)}%"></span></span></td></tr>`).join('');
+    }
+  }
+  function startRealtime() {
+    const sel = document.getElementById('rt-cluster-sel');
+    if (sel && !sel.options.length) sel.innerHTML = clusterStore.map(c=>`<option>${c.name}</option>`).join('');
+    rtPaused = false;
+    document.getElementById('rt-toggle-btn').textContent = '⏸ Pause';
+    renderRealtimeOnce();
+    stopRealtime();
+    rtTimer = setInterval(()=>{ if(!rtPaused) renderRealtimeOnce(); }, 1000);
+  }
+  function stopRealtime() { if (rtTimer) { clearInterval(rtTimer); rtTimer=null; } }
+  function toggleRealtime() {
+    rtPaused = !rtPaused;
+    document.getElementById('rt-toggle-btn').textContent = rtPaused ? '▶ Resume' : '⏸ Pause';
+    toast(rtPaused?'Paused':'Resumed', rtPaused?'Live updates pausados.':'Live updates retomados.', 'info', 2000);
   }
 
   // ── INIT ──
