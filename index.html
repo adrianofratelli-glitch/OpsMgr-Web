@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MongoDB Ops Manager — Demo · MongoDB Brazil</title>
 <meta name="description" content="Demo interativa do MongoDB Ops Manager — Enterprise Advanced"/>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%2300684A'/%3E%3Cpath d='M20 6c0 0-9 7.5-9 16a9 9 0 0018 0C29 13.5 20 6 20 6z' fill='%2300ED64'/%3E%3C/svg%3E"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23001E2B'/%3E%3Cpath d='M12 3.2c1.5 3.1 4.1 4.9 4.1 8.8 0 3.4-1.9 5.6-3.5 6.8l-.3 1.8h-.6l-.3-1.8c-1.6-1.2-3.5-3.4-3.5-6.8 0-3.9 2.6-5.7 4.1-8.8z' fill='%2300ED64'/%3E%3C/svg%3E"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root {
@@ -29,6 +32,8 @@
     --blue: #0163FF;
     --radius: 6px;
     --shadow: 0 1px 4px rgba(0,0,0,.10);
+    --green-grad: linear-gradient(135deg, #00ED64 0%, #00C957 100%);
+    --brand-grad: linear-gradient(135deg, #00684A 0%, #001E2B 100%);
   }
 
   /* ── DARK MODE ── */
@@ -52,15 +57,92 @@
   body.dark .tbl tr:hover td { background: #12222A; }
   body.dark .card-header[style*="gray1"] { background: #12222A !important; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Euclid Circular A', 'Inter', Arial, sans-serif; background: var(--gray1); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-size: 14px; }
+  body { font-family: 'Inter', 'Euclid Circular A', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: var(--gray1); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-size: 14px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -0.011em; }
+
+  /* ── ACESSIBILIDADE — focus visível p/ navegação por teclado ── */
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  .nav-item:focus-visible, .icon-btn:focus-visible, .org-item:focus-visible {
+    outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px;
+  }
+  :focus:not(:focus-visible) { outline: none; }
+
+  /* ── TOOLTIP custom (atributo data-tip) ── */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after {
+    content: attr(data-tip); position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+    background: var(--navy); color: #fff; font-size: 11px; font-weight: 500; padding: 4px 9px; border-radius: 5px;
+    white-space: nowrap; z-index: 999; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    animation: tipFade .15s ease;
+  }
+  [data-tip]:hover::before {
+    content: ''; position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: var(--navy); z-index: 999; pointer-events: none;
+  }
+  @keyframes tipFade { from { opacity: 0; transform: translateX(-50%) translateY(3px); } to { opacity: 1; } }
+
+  /* ── EMPTY STATE amigável ── */
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--gray4); }
+  .empty-state .es-leaf { width: 56px; height: 56px; margin: 0 auto 14px; opacity: .45; }
+  .empty-state .es-leaf svg { width: 100%; height: 100%; }
+  .empty-state h3 { font-size: 16px; color: var(--text-main); margin-bottom: 6px; font-weight: 600; }
+  .empty-state p { font-size: 13px; max-width: 360px; margin: 0 auto 16px; line-height: 1.5; }
+
+  /* ── WELCOME / SPLASH ── */
+  .splash {
+    position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 30% 20%, #023430 0%, #001E2B 55%, #00131C 100%);
+    overflow: hidden; transition: opacity .5s ease, visibility .5s;
+  }
+  .splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+  .splash-bg-leaf { position: absolute; right: -120px; bottom: -120px; width: 560px; opacity: .06; transform: rotate(-12deg); }
+  .splash-bg-leaf svg { width: 100%; height: 100%; }
+  .splash-card {
+    position: relative; text-align: center; color: #fff; padding: 40px; max-width: 460px;
+    animation: splashRise .6s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes splashRise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+  .splash-leaf { width: 84px; height: 84px; margin: 0 auto 22px; filter: drop-shadow(0 6px 20px rgba(0,237,100,.4)); animation: leafFloat 3s ease-in-out infinite; }
+  .splash-leaf svg { width: 100%; height: 100%; }
+  @keyframes leafFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .splash-title { font-size: 30px; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 10px; }
+  .splash-title b { font-weight: 800; }
+  .splash-sub { font-size: 15px; color: #C1C7C6; margin-bottom: 20px; line-height: 1.5; }
+  .splash-sub b { color: #00ED64; font-weight: 600; }
+  .splash-org {
+    display: inline-flex; align-items: center; gap: 7px; color: #89A; font-size: 13px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    padding: 6px 14px; border-radius: 20px; margin-bottom: 30px; color: #9FB3BA;
+  }
+  .splash-btn {
+    background: linear-gradient(135deg, #00ED64 0%, #00C957 100%); color: #00342A; border: none;
+    padding: 13px 32px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 24px rgba(0,237,100,.35); transition: all .2s; font-family: inherit;
+  }
+  .splash-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,237,100,.5); }
+  .splash-foot { margin-top: 22px; font-size: 12px; color: #5C6C75; }
+
+  /* ── FOOTER ── */
+  .app-footer {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    padding: 14px 28px; border-top: 1px solid var(--gray2); background: var(--card);
+    font-size: 12px; color: var(--gray4); flex-shrink: 0;
+  }
+  .app-footer-left { display: flex; align-items: center; gap: 8px; color: var(--gray5); }
+  .app-footer-left b { color: var(--text-main); font-weight: 700; }
+  .app-footer-right b { color: var(--text-main); }
+  .app-footer-right a { color: var(--dark-green); text-decoration: none; font-weight: 600; }
+  .app-footer-right a:hover { text-decoration: underline; }
+  body.dark .app-footer-right a { color: var(--green); }
 
   /* ── TOP BAR ── */
   .topbar {
     height: var(--topbar-h); background: var(--navy); display: flex; align-items: center;
     padding: 0 18px; gap: 14px; flex-shrink: 0; z-index: 100; box-shadow: 0 2px 6px rgba(0,0,0,.3);
   }
-  .topbar-logo { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 700; font-size: 15px; }
-  .topbar-logo svg { width: 28px; height: 28px; }
+  .topbar-logo { display: flex; align-items: center; gap: 9px; color: #fff; font-size: 15px; }
+  .topbar-logo svg { width: 26px; height: 26px; flex-shrink: 0; }
+  .logo-text { font-weight: 500; letter-spacing: -0.01em; }
+  .logo-text b { font-weight: 800; }
   .topbar-org {
     margin-left: 18px; color: var(--gray3); font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer;
   }
@@ -131,14 +213,15 @@
   .page-header-actions { margin-left: auto; display: flex; gap: 8px; }
   .btn {
     display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius);
-    font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s;
+    font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; white-space: nowrap;
   }
-  .btn-primary { background: var(--green); color: var(--text-main); }
-  .btn-primary:hover { background: #00b84a; }
+  .btn-primary { background: var(--green-grad); color: #00342A; box-shadow: 0 1px 2px rgba(0,104,74,.25); }
+  .btn-primary:hover { filter: brightness(1.05); box-shadow: 0 2px 8px rgba(0,237,100,.35); transform: translateY(-1px); }
   .btn-secondary { background: var(--card); color: var(--text-main); border: 1px solid var(--gray3); }
-  .btn-secondary:hover { background: var(--gray2); }
+  .btn-secondary:hover { background: var(--gray2); border-color: var(--gray4); }
   .btn-danger { background: var(--red); color: #fff; }
-  .btn-danger:hover { background: #b72626; }
+  .btn-danger:hover { background: #b72626; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
 
   /* ── CONTENT ── */
   .content { padding: 24px 28px; flex: 1; }
@@ -148,6 +231,8 @@
     background: var(--card); border-radius: var(--radius); border: 1px solid var(--gray2);
     box-shadow: var(--shadow); overflow: hidden;
   }
+  .cluster-card, .stat-card { transition: box-shadow .2s, transform .2s, border-color .2s; }
+  .cluster-card:hover, .stat-card:hover { box-shadow: 0 4px 16px rgba(0,30,43,.10); transform: translateY(-2px); border-color: var(--gray3); }
   .card-header {
     padding: 14px 18px; border-bottom: 1px solid var(--gray2);
     display: flex; align-items: center; gap: 10px;
@@ -449,14 +534,38 @@
 </head>
 <body>
 
+<!-- ══════════ WELCOME / SPLASH ══════════ -->
+<div id="splash" class="splash">
+  <div class="splash-bg-leaf">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 1.5c1.85 3.8 4.95 5.9 4.95 10.6 0 4.05-2.25 6.65-4.2 8.05l-.35 2.35h-.8l-.35-2.35c-1.95-1.4-4.2-4-4.2-8.05C6.85 7.4 9.95 5.3 12 1.5z" fill="#00ED64"/></svg>
+  </div>
+  <div class="splash-card">
+    <div class="splash-leaf">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 1.5c1.85 3.8 4.95 5.9 4.95 10.6 0 4.05-2.25 6.65-4.2 8.05l-.35 2.35h-.8l-.35-2.35c-1.95-1.4-4.2-4-4.2-8.05C6.85 7.4 9.95 5.3 12 1.5z" fill="#00ED64"/><path d="M12 1.5c1.85 3.8 4.95 5.9 4.95 10.6 0 4.05-2.25 6.65-4.2 8.05L12 22V1.5z" fill="#00684A" opacity="0.85"/></svg>
+    </div>
+    <h1 class="splash-title"><b>MongoDB</b> Ops Manager</h1>
+    <div class="splash-sub">Plataforma de operações do <b>MongoDB Enterprise Advanced</b></div>
+    <div class="splash-org">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      MongoDB Brazil
+    </div>
+    <button class="splash-btn" onclick="enterDemo()">Entrar na demonstração →</button>
+    <div class="splash-foot">Demonstração interativa · sem conexão com bancos reais</div>
+  </div>
+</div>
+
 <!-- TOP BAR -->
 <div class="topbar">
   <button class="menu-toggle" onclick="document.body.classList.toggle('sidebar-open')" title="Menu">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
   <div class="topbar-logo">
-    <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#00684A"/><path d="M20 6c0 0-9 7.5-9 16a9 9 0 0018 0C29 13.5 20 6 20 6z" fill="#00ED64"/><path d="M20 6v28" stroke="#00684A" stroke-width="2"/></svg>
-    MongoDB Ops Manager
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-label="MongoDB" fill="none">
+      <path d="M12 1.5c1.85 3.8 4.95 5.9 4.95 10.6 0 4.05-2.25 6.65-4.2 8.05l-.35 2.35h-.8l-.35-2.35c-1.95-1.4-4.2-4-4.2-8.05C6.85 7.4 9.95 5.3 12 1.5z" fill="#00ED64"/>
+      <path d="M12 1.5c1.85 3.8 4.95 5.9 4.95 10.6 0 4.05-2.25 6.65-4.2 8.05L12 22V1.5z" fill="#00684A" opacity="0.9"/>
+      <path d="M12 1.5v21" stroke="#001E2B" stroke-width="0.7" opacity="0.55"/>
+    </svg>
+    <span class="logo-text"><b>MongoDB</b> Ops Manager</span>
   </div>
   <div class="topbar-org" onclick="openModal('modal-org')">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -472,14 +581,14 @@
            oninput="runGlobalSearch(this.value)" onkeydown="globalSearchKey(event)" onfocus="runGlobalSearch(this.value)"/>
     <div class="gs-results" id="gs-results"></div>
   </div>
-  <button class="topbar-btn" onclick="startTour()" title="Tour guiado" style="padding:5px 10px">🎬 Tour</button>
-  <button class="topbar-btn" onclick="openModal('modal-deploy')">+ New Deployment</button>
-  <button class="topbar-btn" id="theme-toggle" onclick="toggleTheme()" title="Alternar tema" style="padding:5px 10px">🌙</button>
-  <div class="topbar-notif" title="Alerts" onclick="showSection('alerts',document.getElementById('nav-alerts'))" style="cursor:pointer">
+  <button class="topbar-btn" onclick="startTour()" data-tip="Tour guiado da demo" style="padding:5px 10px">🎬 Tour</button>
+  <button class="topbar-btn" onclick="openModal('modal-deploy')" data-tip="Provisionar novo cluster">+ New Deployment</button>
+  <button class="topbar-btn" id="theme-toggle" onclick="toggleTheme()" data-tip="Alternar tema claro/escuro" style="padding:5px 10px">🌙</button>
+  <div class="topbar-notif" data-tip="Ver alertas" onclick="showSection('alerts',document.getElementById('nav-alerts'))" style="cursor:pointer">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
     <div class="topbar-notif-dot"></div>
   </div>
-  <div class="topbar-avatar" title="Admin User" onclick="openModal('modal-profile')" style="cursor:pointer">A</div>
+  <div class="topbar-avatar" data-tip="Conta & configurações" onclick="openModal('modal-profile')" style="cursor:pointer">A</div>
 </div>
 
 <div class="layout">
@@ -1571,6 +1680,18 @@
         <button class="btn btn-primary" onclick="toast('Settings saved','Project settings updated successfully.','success')">Save Changes</button>
       </div></div></div>
     </div>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <div class="app-footer-left">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M12 1.5c1.85 3.8 4.95 5.9 4.95 10.6 0 4.05-2.25 6.65-4.2 8.05l-.35 2.35h-.8l-.35-2.35c-1.95-1.4-4.2-4-4.2-8.05C6.85 7.4 9.95 5.3 12 1.5z" fill="#00ED64"/></svg>
+        <span><b>MongoDB</b> Ops Manager — Demo</span>
+      </div>
+      <div class="app-footer-right">
+        Construído para a <b>MongoDB Brazil</b> · Enterprise Advanced ·
+        <a href="https://www.mongodb.com/docs/ops-manager/current/" target="_blank" rel="noopener">Documentação oficial ↗</a>
+      </div>
+    </footer>
 
   </div><!-- /main -->
 </div><!-- /layout -->
@@ -2740,7 +2861,11 @@
   function renderOpenAlerts() {
     const cont = document.getElementById('open-alerts-list');
     if (!cont) return;
-    if (openAlerts.length===0) { cont.innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--gray4)">✅ No open alerts. All systems healthy.</div></div>'; return; }
+    if (openAlerts.length===0) { cont.innerHTML = `<div class="card"><div class="empty-state">
+      <div class="es-leaf"><svg viewBox="0 0 24 24" fill="none"><path d="M12 1.5c1.85 3.8 4.95 5.9 4.95 10.6 0 4.05-2.25 6.65-4.2 8.05l-.35 2.35h-.8l-.35-2.35c-1.95-1.4-4.2-4-4.2-8.05C6.85 7.4 9.95 5.3 12 1.5z" fill="#00ED64"/></svg></div>
+      <h3>Tudo sob controle ✨</h3>
+      <p>Nenhum alerta aberto no momento. Todos os clusters estão saudáveis e operando normalmente.</p>
+    </div></div>`; return; }
     cont.innerHTML = openAlerts.map(a=>`
       <div class="card" style="margin-bottom:12px;border-left:4px solid ${a.sev==='crit'?'var(--red)':a.sev==='warn'?'var(--yellow)':'var(--blue)'}">
         <div class="card-body" style="display:flex;align-items:center;gap:14px;padding:16px">
@@ -3269,6 +3394,18 @@
     applyTheme(t);
   })();
 
+  // Welcome splash — aparece uma vez por sessão de navegação
+  function enterDemo() {
+    const s = document.getElementById('splash');
+    if (s) s.classList.add('hide');
+    try { sessionStorage.setItem('opsmgr-seen-splash','1'); } catch(e){}
+  }
+  (function initSplash(){
+    let seen = false;
+    try { seen = sessionStorage.getItem('opsmgr-seen-splash')==='1'; } catch(e){}
+    if (seen) { const s=document.getElementById('splash'); if(s) s.classList.add('hide'); }
+  })();
+
   // ══════════════════════════════════════════════════
   // GLOBAL SEARCH
   // ══════════════════════════════════════════════════
@@ -3401,6 +3538,19 @@
   renderUsers();
   renderRoles();
   renderAudit();
+
+  // Acessibilidade: torna itens de navegação operáveis por teclado (Enter/Espaço)
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.setAttribute('tabindex','0'); n.setAttribute('role','button');
+  });
+  document.addEventListener('keydown', e=>{
+    if ((e.key==='Enter'||e.key===' ') && document.activeElement?.classList.contains('nav-item')) {
+      e.preventDefault(); document.activeElement.click();
+    }
+    if (e.key==='Escape') { // fecha modais abertos com ESC
+      document.querySelectorAll('.modal-overlay.open').forEach(m=>{ if(m.id!=='modal-progress') m.classList.remove('open'); });
+    }
+  });
 
   // ── MONITORING CHARTS ──────────────────────────────
   const chartInstances = {};
