@@ -639,7 +639,7 @@
       <div class="nav-item" id="nav-perf" onclick="showSection('perf-advisor', this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
         Performance Advisor
-        <span class="badge warn">4</span>
+        <span class="badge warn" id="badge-perf">4</span>
       </div>
       <div class="nav-item" onclick="showSection('realtime', this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -648,7 +648,7 @@
       <div class="nav-item" id="nav-alerts" onclick="showSection('alerts', this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Alerts
-        <span class="badge">3</span>
+        <span class="badge" id="badge-alerts">3</span>
       </div>
     </div>
 
@@ -897,13 +897,13 @@
           </div>
           <div class="stat-card">
             <div class="stat-label">Pending Changes</div>
-            <div class="stat-value">2</div>
-            <div class="stat-sub"><span class="stat-badge yellow">Awaiting Review</span></div>
+            <div class="stat-value" id="stat-pending">2</div>
+            <div class="stat-sub" id="stat-pending-sub"><span class="stat-badge yellow">Awaiting Review</span></div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Last Deployment</div>
-            <div class="stat-value" style="font-size:18px">2h ago</div>
-            <div class="stat-sub">rs-prod-01 oplog resize</div>
+            <div class="stat-value" style="font-size:18px" id="stat-last-deploy">2h ago</div>
+            <div class="stat-sub" id="stat-last-deploy-sub">rs-prod-01 oplog resize</div>
           </div>
         </div>
 
@@ -915,7 +915,7 @@
           <div class="card-body" style="padding:0">
             <table class="tbl">
               <thead><tr><th>Cluster</th><th>Change Type</th><th>Description</th><th>Requested By</th><th>Time</th><th>Actions</th></tr></thead>
-              <tbody>
+              <tbody id="pending-changes-tbody">
                 <tr>
                   <td><b>rs-prod-01</b></td>
                   <td><span class="pill pill-blue">Version Upgrade</span></td>
@@ -949,7 +949,7 @@
           <div class="card-body" style="padding:0">
             <table class="tbl">
               <thead><tr><th>Time</th><th>Cluster</th><th>Change</th><th>Status</th><th>Duration</th><th>Applied By</th></tr></thead>
-              <tbody>
+              <tbody id="automation-history-tbody">
                 <tr><td>2024-01-15 10:42</td><td>rs-prod-01</td><td>Oplog size 5GB → 10GB</td><td><span class="pill pill-green">✓ Success</span></td><td>4m 12s</td><td>admin</td></tr>
                 <tr><td>2024-01-14 22:10</td><td>rs-staging</td><td>Version upgrade 6.0.11 → 6.0.12</td><td><span class="pill pill-green">✓ Success</span></td><td>12m 30s</td><td>System</td></tr>
                 <tr><td>2024-01-14 14:00</td><td>sharded-analytics</td><td>Added shard shard-02</td><td><span class="pill pill-green">✓ Success</span></td><td>8m 05s</td><td>john.doe</td></tr>
@@ -978,7 +978,7 @@
       <div class="content">
 
         <div class="stat-grid" style="margin-bottom:20px">
-          <div class="stat-card"><div class="stat-label">Index Suggestions</div><div class="stat-value" style="color:var(--yellow)">4</div><div class="stat-sub">High impact opportunities</div></div>
+          <div class="stat-card"><div class="stat-label">Index Suggestions</div><div class="stat-value" style="color:var(--yellow)" id="stat-pa-index">4</div><div class="stat-sub">High impact opportunities</div></div>
           <div class="stat-card"><div class="stat-label">Slow Queries (24h)</div><div class="stat-value" style="color:var(--red)">127</div><div class="stat-sub">&gt; 100ms execution</div></div>
           <div class="stat-card"><div class="stat-label">Avg Query Time</div><div class="stat-value">8.4<span style="font-size:14px">ms</span></div><div class="stat-sub"><span class="stat-badge green">↓ 12% vs ontem</span></div></div>
           <div class="stat-card"><div class="stat-label">Collections Scanned</div><div class="stat-value">42</div><div class="stat-sub">across all databases</div></div>
@@ -1188,9 +1188,9 @@
 
         <!-- Alert tabs -->
         <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--gray2)">
-          <button class="alert-tab active" onclick="showAlertTab('open',this)">Open Alerts <span class="badge" style="position:static;display:inline-block">3</span></button>
-          <button class="alert-tab" onclick="showAlertTab('closed',this)">Closed (28)</button>
-          <button class="alert-tab" onclick="showAlertTab('config',this)">Alert Settings (12)</button>
+          <button class="alert-tab active" onclick="showAlertTab('open',this)">Open Alerts <span class="badge" id="tab-open-count" style="position:static;display:inline-block">3</span></button>
+          <button class="alert-tab" onclick="showAlertTab('closed',this)"><span id="tab-closed-label">Closed (28)</span></button>
+          <button class="alert-tab" onclick="showAlertTab('config',this)"><span id="tab-config-label">Alert Settings (12)</span></button>
         </div>
 
         <!-- Open alerts -->
@@ -1245,7 +1245,7 @@
         <div class="stat-grid" style="margin-bottom:20px">
           <div class="stat-card">
             <div class="stat-label">Protected Clusters</div>
-            <div class="stat-value">3</div>
+            <div class="stat-value" id="stat-protected">3</div>
             <div class="stat-sub"><span class="stat-badge green">All active</span></div>
           </div>
           <div class="stat-card">
@@ -2418,9 +2418,65 @@
     const total = clusterStore.length;
     const warn  = clusterStore.filter(c=>c.status==='warning'||c.status==='critical').length;
     const hosts = clusterStore.reduce((a,c)=>a+c.nodes.length,0);
-    document.getElementById('stat-clusters').textContent = total;
-    document.getElementById('stat-hosts').textContent    = hosts;
-    document.getElementById('stat-warn').textContent     = warn;
+    const healthy = clusterStore.filter(c=>c.status==='healthy').length;
+    const setText = (id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+    setText('stat-clusters', total);
+    setText('stat-hosts', hosts);
+    setText('stat-warn', warn);
+    const sub = document.getElementById('stat-clusters-sub');
+    if (sub) sub.innerHTML = `<span class="stat-badge green">${healthy} Healthy</span>${warn?` &nbsp; <span class="stat-badge red">${warn} Warning</span>`:''}`;
+  }
+
+  // ══════════════════════════════════════════════════
+  // CONTADORES REATIVOS — recalcula todos os contadores derivados
+  // ══════════════════════════════════════════════════
+  function refreshCounters() {
+    const set = (id,v)=>{ const e=document.getElementById(id); if(e!=null && e) e.textContent=v; };
+    const setBadge = (id,v)=>{ const e=document.getElementById(id); if(e){ e.textContent=v; e.style.display = v>0?'':'none'; } };
+
+    // Dashboard
+    updateStatCards();
+
+    // Automation — pending changes (conta linhas reais na tabela)
+    const pend = document.getElementById('pending-changes-tbody');
+    if (pend) {
+      const rows = [...pend.querySelectorAll('tr')].filter(r=>!r.classList.contains('empty-row'));
+      const n = rows.length;
+      set('stat-pending', n);
+      const sub = document.getElementById('stat-pending-sub');
+      if (sub) sub.innerHTML = n>0 ? '<span class="stat-badge yellow">Awaiting Review</span>' : '<span class="stat-badge green">Tudo aplicado</span>';
+      if (n===0 && !pend.querySelector('.empty-row')) {
+        pend.innerHTML = `<tr class="empty-row"><td colspan="6"><div class="empty-state" style="padding:28px">
+          <div class="es-leaf"><svg viewBox="0 0 24 24" fill="none"><path d="M12 1.5c1.85 3.8 4.95 5.9 4.95 10.6 0 4.05-2.25 6.65-4.2 8.05l-.35 2.35h-.8l-.35-2.35c-1.95-1.4-4.2-4-4.2-8.05C6.85 7.4 9.95 5.3 12 1.5z" fill="#00ED64"/></svg></div>
+          <h3>Nenhuma mudança pendente</h3><p>Todas as alterações foram aplicadas ou descartadas. As implantações estão em dia.</p></div></td></tr>`;
+      }
+    }
+
+    // Performance Advisor — index suggestions
+    const paN = (typeof paIndexSuggestions!=='undefined') ? paIndexSuggestions.length : 0;
+    set('stat-pa-index', paN);
+    setBadge('badge-perf', paN);
+
+    // Alerts — open / closed / config
+    const openN = (typeof openAlerts!=='undefined') ? openAlerts.length : 0;
+    set('tab-open-count', openN);
+    setBadge('badge-alerts', openN);
+    const closedLbl = document.getElementById('tab-closed-label');
+    if (closedLbl) closedLbl.textContent = `Closed (${closedAlertsCount})`;
+    const cfgLbl = document.getElementById('tab-config-label');
+    if (cfgLbl && typeof alertConfigs!=='undefined') cfgLbl.textContent = `Alert Settings (${alertConfigs.length})`;
+    const asub = document.querySelector('#section-alerts .page-subtitle');
+    if (asub) asub.textContent = `${openN} open alert${openN!==1?'s':''} · Project: Production`;
+    // ponto de notificação na topbar
+    const dot = document.querySelector('.topbar-notif-dot');
+    if (dot) dot.style.display = openN>0 ? '' : 'none';
+
+    // Backup — snapshots e clusters protegidos
+    set('total-snapshots', (typeof snapshotStore!=='undefined') ? snapshotStore.length + 100 : 142);
+    if (typeof clusterStore!=='undefined') {
+      const protectedN = clusterStore.filter(c=>c.type!=='standalone').length;
+      set('stat-protected', protectedN);
+    }
   }
 
   // ── Render Deployments list ──
@@ -2567,7 +2623,7 @@
     runProgress(`Applying changes to ${c.name}`, steps, () => {
       c.version = newVer;
       c.nodes.forEach(n=>n.version=newVer);
-      renderDashboard(); renderDeployments();
+      renderDashboard(); renderDeployments(); refreshCounters();
       toast('Changes applied', `${c.name} updated to MongoDB ${newVer}, log level ${newLog}.`, 'success');
     });
   }
@@ -2594,7 +2650,7 @@
     ];
     runProgress(`Adding node to ${c.name}`, steps, () => {
       c.nodes.push({host, role:'SECONDARY', version:c.version, status:'green', uptime:'just now', conn:0, disk:3, lag:'0.0s'});
-      renderDashboard(); renderDeployments();
+      renderDashboard(); renderDeployments(); refreshCounters();
       toast('Node added', `${host} joined ${c.name} as Secondary.`, 'success');
     });
   }
@@ -2614,7 +2670,7 @@
       const newPrimary = c.nodes.find((n,i)=>i!==nodeIdx && n.role==='SECONDARY');
       if (oldPrimary) oldPrimary.role = 'SECONDARY';
       if (newPrimary) newPrimary.role = 'PRIMARY';
-      renderDashboard(); renderDeployments();
+      renderDashboard(); renderDeployments(); refreshCounters();
       toast('New primary elected', `${newPrimary?.host || 'another node'} is now PRIMARY.`, 'success');
     });
   }
@@ -2657,7 +2713,7 @@
     runProgress(`Rolling Upgrade → ${newVer} on ${c.name}`, steps, () => {
       c.version = newVer;
       c.nodes.forEach(n=>n.version=newVer);
-      renderDashboard(); renderDeployments();
+      renderDashboard(); renderDeployments(); refreshCounters();
       toast('Upgrade complete', `${c.name} is now running MongoDB ${newVer}.`, 'success');
     });
   }
@@ -2696,6 +2752,7 @@
     if (id === 'perf-advisor')    renderPerfAdvisor();
     if (id === 'realtime')        startRealtime();
     else stopRealtime();
+    refreshCounters();
   }
 
   function confirmAction(msg) {
@@ -2760,8 +2817,8 @@
         size:'42 GB', expires:'2024-02-15', status:'ready'
       };
       snapshotStore.unshift(newSnap);
-      document.getElementById('total-snapshots').textContent = snapshotStore.length + 100;
       renderSnapshots();
+      refreshCounters();
       toast('Snapshot created!', `${newSnap.id} for ${cluster} is ready.`, 'success');
     });
   }
@@ -2841,6 +2898,7 @@
     const idx = snapshotStore.findIndex(s=>s.id===id);
     if (idx>-1) snapshotStore.splice(idx,1);
     renderSnapshots();
+    refreshCounters();
     toast('Snapshot deleted', `${id} has been permanently removed.`, 'warning');
   }
 
@@ -2884,20 +2942,16 @@
   function ackAlert(id) {
     toast('Alert acknowledged','You will stop receiving notifications for 1h.','info');
   }
+  let closedAlertsCount = 28;
   function resolveAlert(id) {
     const idx = openAlerts.findIndex(a=>a.id===id);
-    if (idx>-1) openAlerts.splice(idx,1);
+    if (idx>-1) { openAlerts.splice(idx,1); closedAlertsCount++; }
     renderOpenAlerts();
-    updateAlertBadges();
+    refreshCounters();
     toast('Alert resolved','The alert has been moved to closed.','success');
   }
 
-  function updateAlertBadges() {
-    const n = openAlerts.length;
-    document.querySelectorAll('.nav-item .badge').forEach(b=>{ if(b.parentElement.textContent.includes('Alerts')) b.textContent=n; });
-    const sub = document.querySelector('#section-alerts .page-subtitle');
-    if (sub) sub.textContent = `${n} open alerts · Project: Production`;
-  }
+  function updateAlertBadges() { refreshCounters(); }
 
   const alertConfigs = [
     {cond:'Host is down', target:'All clusters', thresh:'—', notify:'Email, PagerDuty', on:true},
@@ -2922,7 +2976,7 @@
   }
   function deleteAlertConfig(i) {
     if(!confirm('Delete this alert configuration?')) return;
-    alertConfigs.splice(i,1); renderAlertConfigs(); toast('Alert config deleted','','warning');
+    alertConfigs.splice(i,1); renderAlertConfigs(); refreshCounters(); toast('Alert config deleted','','warning');
   }
   function addAlertConfig() {
     const cond = document.getElementById('na-metric').value;
@@ -2930,7 +2984,7 @@
     const tgt  = document.getElementById('na-target').value;
     const notify = Array.from(document.getElementById('na-notify').selectedOptions).map(o=>o.value).join(', ');
     alertConfigs.unshift({cond, target:tgt, thresh:thr+'%', notify:notify||'Email', on:true});
-    renderAlertConfigs(); closeModal('modal-new-alert');
+    renderAlertConfigs(); refreshCounters(); closeModal('modal-new-alert');
     toast('Alert created',`"${cond}" alert is now active.`,'success');
   }
 
@@ -3118,7 +3172,7 @@
           {host:'imported-n2.mongodb-brazil.internal:27017', role:'SECONDARY', version:'7.0.4', status:'green', uptime:'imported', conn:48, disk:33, lag:'0.1s'},
         ]});
       }
-      renderDashboard(); renderDeployments();
+      renderDashboard(); renderDeployments(); refreshCounters();
       toast('Deployment imported!','imported-rs is now managed by Ops Manager.','success',6000);
     });
   }
@@ -3132,12 +3186,20 @@
     ];
     runProgress(`Applying change to ${cluster}`, steps, ()=>{
       if (row) row.remove();
+      // registra no histórico de automação + atualiza "Last Deployment"
+      const hist = document.getElementById('automation-history-tbody');
+      if (hist) hist.insertAdjacentHTML('afterbegin',
+        `<tr><td>agora</td><td>${cluster}</td><td>${desc}</td><td><span class="pill pill-green">✓ Success</span></td><td>${(2+Math.random()*8).toFixed(0)}m ${(Math.random()*59|0)}s</td><td>admin</td></tr>`);
+      const ld = document.getElementById('stat-last-deploy'); if (ld) ld.textContent = 'agora';
+      const lds = document.getElementById('stat-last-deploy-sub'); if (lds) lds.textContent = `${cluster}: ${desc}`;
+      refreshCounters();
       toast('Change applied',`${desc} completed on ${cluster}.`,'success');
     });
   }
   function discardPendingChange(btn) {
     if(!confirm('Discard this pending change?')) return;
     btn.closest('tr').remove();
+    refreshCounters();
     toast('Change discarded','The pending change was removed.','warning');
   }
 
@@ -3262,6 +3324,7 @@
     runProgress(`Creating index on ${s.ns}`, steps, ()=>{
       paIndexSuggestions.splice(i,1);
       renderPerfAdvisor();
+      refreshCounters();
       toast('Index created!', `${s.idx} created on ${s.ns}. Queries will now use IXSCAN.`, 'success', 6000);
     });
   }
@@ -3538,6 +3601,7 @@
   renderUsers();
   renderRoles();
   renderAudit();
+  refreshCounters();
 
   // Acessibilidade: torna itens de navegação operáveis por teclado (Enter/Espaço)
   document.querySelectorAll('.nav-item').forEach(n=>{
