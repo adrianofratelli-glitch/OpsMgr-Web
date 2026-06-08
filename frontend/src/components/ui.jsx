@@ -59,3 +59,70 @@ export function Loading({ label = 'Carregando…' }) {
     </div>
   )
 }
+
+// Tabela estilizada com tokens LeafyGreen (render garantido, visual on-brand)
+export function DataTable({ columns, rows, empty }) {
+  const { darkMode } = useDarkMode()
+  const border = darkMode ? palette.gray.dark2 : palette.gray.light2
+  const headBg = darkMode ? palette.gray.dark3 : palette.gray.light3
+  const headColor = darkMode ? palette.gray.light1 : palette.gray.dark1
+  const cellColor = darkMode ? palette.gray.light2 : palette.black
+
+  if (!rows || rows.length === 0) {
+    return empty || <Body style={{ padding: 24, color: palette.gray.base, textAlign: 'center' }}>Nenhum registro.</Body>
+  }
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <thead>
+          <tr>
+            {columns.map((c, i) => (
+              <th key={i} style={{ textAlign: 'left', padding: '9px 14px', background: headBg, color: headColor,
+                fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em',
+                borderBottom: `2px solid ${border}`, whiteSpace: 'nowrap', ...(c.width ? { width: c.width } : {}) }}>
+                {c.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri}>
+              {columns.map((c, ci) => (
+                <td key={ci} style={{ padding: '10px 14px', borderBottom: `1px solid ${border}`, color: cellColor, verticalAlign: 'middle' }}>
+                  {c.render ? c.render(row, ri) : row[c.key]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// Linha de definição (label: valor) usada em rodapés de card
+export function MetaRow({ items }) {
+  return (
+    <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12, color: palette.gray.base }}>
+      {items.map((it, i) => (
+        <span key={i}>{it.label}: <b style={{ color: palette.gray.dark1 }}>{it.value}</b></span>
+      ))}
+    </div>
+  )
+}
+
+// Code box (connection strings, snippets)
+export function CodeBox({ children, onCopy }) {
+  return (
+    <div style={{ background: palette.black, color: palette.green.light1, padding: '14px 16px', borderRadius: 6,
+      fontFamily: 'monospace', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 12, wordBreak: 'break-all' }}>
+      <code style={{ flex: 1, lineHeight: 1.5 }}>{children}</code>
+      {onCopy && (
+        <button onClick={onCopy} style={{ background: 'rgba(255,255,255,.12)', color: '#fff', border: 'none',
+          borderRadius: 4, padding: '5px 10px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>📋 Copy</button>
+      )}
+    </div>
+  )
+}
