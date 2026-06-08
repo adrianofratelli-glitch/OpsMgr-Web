@@ -13,6 +13,16 @@ Thumbs.db
 # Logs
 *.log
 
+# Node / Vite
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+
 # Material interno / slides — NÃO publicar em repo público
 *.pdf
 *.pptx
