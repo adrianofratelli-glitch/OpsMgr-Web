@@ -8,6 +8,7 @@ import { Select, Option } from '@leafygreen-ui/select'
 import { Subtitle, Body } from '@leafygreen-ui/typography'
 import { spacing } from '@leafygreen-ui/tokens'
 import { palette } from '@leafygreen-ui/palette'
+import { useDarkMode } from '@leafygreen-ui/leafygreen-provider'
 import { PageHeader, Grid, DataTable } from '../components/ui'
 
 const JOBS = [
@@ -16,6 +17,7 @@ const JOBS = [
 ]
 
 export default function Restore({ toast }) {
+  const { darkMode } = useDarkMode()
   const [cluster, setCluster] = useState('rs-prod-01')
   const cols = [
     { header: 'Job ID', render: (r) => <code>{r.id}</code> },
@@ -53,7 +55,7 @@ export default function Restore({ toast }) {
           </div>
           <div>
             <Body style={{ marginBottom: 10, fontWeight: 600 }}>Oplog Coverage Timeline</Body>
-            <div style={{ background: palette.gray.light3, borderRadius: 6, padding: 16, height: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ background: darkMode ? palette.gray.dark3 : palette.gray.light3, borderRadius: 6, padding: 16, height: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: palette.gray.base, marginBottom: 6 }}>
                 <span>Jan 13</span><span>Jan 14</span><span>Jan 15 (now)</span>
               </div>

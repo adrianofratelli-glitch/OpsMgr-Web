@@ -7,6 +7,7 @@ import { Subtitle, Body, Description } from '@leafygreen-ui/typography'
 import ConfirmationModal from '@leafygreen-ui/confirmation-modal'
 import { palette } from '@leafygreen-ui/palette'
 import { spacing } from '@leafygreen-ui/tokens'
+import { useDarkMode } from '@leafygreen-ui/leafygreen-provider'
 import { PageHeader, DataTable, MetaRow, Loading } from '../components/ui'
 import NewDeploymentModal from '../modals/NewDeploymentModal'
 import ConnectModal from '../modals/ConnectModal'
@@ -16,11 +17,13 @@ const TYPE_BADGE = { rs: ['blue', 'Replica Set'], sharded: ['green', 'Sharded Cl
 const STATUS_BADGE = { healthy: ['green', '● Healthy'], warning: ['yellow', '● Warning'], critical: ['red', '● Critical'] }
 
 function DiskBar({ pct }) {
+  const { darkMode } = useDarkMode()
   if (!pct) return <span>—</span>
   const color = pct > 85 ? palette.red.base : pct > 70 ? palette.yellow.dark2 : palette.green.dark1
+  const track = darkMode ? palette.gray.dark1 : palette.gray.light2
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ width: 80, height: 8, borderRadius: 4, background: palette.gray.light2, overflow: 'hidden', display: 'inline-block' }}>
+      <span style={{ width: 80, height: 8, borderRadius: 4, background: track, overflow: 'hidden', display: 'inline-block' }}>
         <span style={{ display: 'block', height: '100%', width: `${pct}%`, background: color, borderRadius: 4 }} />
       </span>
       <span style={{ fontSize: 12, color }}>{pct}%</span>
@@ -29,6 +32,8 @@ function DiskBar({ pct }) {
 }
 
 function ClusterBlock({ c, toast, reload }) {
+  const { darkMode } = useDarkMode()
+  const headerBg = darkMode ? palette.gray.dark3 : palette.gray.light3
   const [tb, tl] = TYPE_BADGE[c.type] || TYPE_BADGE.rs
   const [sb, sl] = STATUS_BADGE[c.status] || STATUS_BADGE.healthy
   const [confirmTerminate, setConfirmTerminate] = useState(false)
@@ -62,7 +67,7 @@ function ClusterBlock({ c, toast, reload }) {
 
   return (
     <Card style={{ padding: 0, overflow: 'hidden', marginBottom: spacing[400] }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: `${spacing[300]}px ${spacing[400]}px`, background: palette.gray.light3, borderBottom: `1px solid ${palette.gray.light2}`, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: `${spacing[300]}px ${spacing[400]}px`, background: headerBg, borderBottom: `1px solid ${palette.gray.light2}`, flexWrap: 'wrap' }}>
         <Badge variant={tb}>{tl}</Badge>
         <Subtitle style={{ fontSize: 15 }}>{c.name}</Subtitle>
         <Badge variant={sb}>{sl}</Badge>

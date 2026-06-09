@@ -5,12 +5,14 @@ import Button from '@leafygreen-ui/button'
 import { Subtitle } from '@leafygreen-ui/typography'
 import { spacing } from '@leafygreen-ui/tokens'
 import { palette } from '@leafygreen-ui/palette'
+import { useDarkMode } from '@leafygreen-ui/leafygreen-provider'
 import { PageHeader, StatCard, Grid, DataTable, Loading } from '../components/ui'
 import { API } from '../api/client'
 
 function Bar({ pct }) {
+  const { darkMode } = useDarkMode()
   return (
-    <span style={{ width: 100, height: 6, borderRadius: 3, background: palette.gray.light2, display: 'inline-block', overflow: 'hidden' }}>
+    <span style={{ width: 100, height: 6, borderRadius: 3, background: darkMode ? palette.gray.dark1 : palette.gray.light2, display: 'inline-block', overflow: 'hidden' }}>
       <span style={{ display: 'block', height: '100%', width: `${pct}%`, background: palette.green.base }} />
     </span>
   )
