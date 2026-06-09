@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:pages": "VITE_USE_MOCK=1 VITE_BASE=/OpsMgr-Web/ vite build",
     "preview": "vite preview"
   },
   "dependencies": {

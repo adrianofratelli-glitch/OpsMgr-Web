@@ -1,4 +1,9 @@
 import axios from 'axios'
+import { MockAPI } from './mock'
+
+// MODO MOCK: no build estático (GitHub Pages) não há backend Python.
+// Defina VITE_USE_MOCK=1 no build para usar os dados embutidos no cliente.
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === '1' || import.meta.env.VITE_USE_MOCK === 'true'
 
 // Base URL: em dev usa o proxy do Vite (/api → backend). Em prod, defina VITE_API_URL.
 const baseURL = import.meta.env.VITE_API_URL || ''
@@ -8,8 +13,8 @@ export const api = axios.create({
   timeout: 15000,
 })
 
-// ── Endpoints tipados (camada de serviço) ──────────────────────
-export const API = {
+// ── Endpoints tipados (camada de serviço — backend real via axios) ──
+const RealAPI = {
   meta: () => api.get('/api/meta').then((r) => r.data),
   dashboard: () => api.get('/api/dashboard').then((r) => r.data),
 
@@ -55,3 +60,6 @@ export const API = {
   activity: () => api.get('/api/activity').then((r) => r.data),
   reset: () => api.post('/api/reset').then((r) => r.data),
 }
+
+// Exporta o backend real (axios) ou o mock embutido conforme o build.
+export const API = USE_MOCK ? MockAPI : RealAPI

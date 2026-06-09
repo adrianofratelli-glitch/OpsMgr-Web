@@ -10,12 +10,19 @@ Criada para apoiar a **MongoDB Brazil** no posicionamento do **MongoDB Enterpris
 ![stack](https://img.shields.io/badge/frontend-React%20%2B%20Vite%20%2B%20LeafyGreen-00ED64)
 ![backend](https://img.shields.io/badge/backend-FastAPI%20(Python)-001E2B)
 
+### 👉 [**Abrir a demo ao vivo**](https://adrianofratelli-glitch.github.io/OpsMgr-Web/) 👈
+
+*Roda direto no navegador (modo mock, sem backend). Nada para instalar.*
+
 </div>
 
 ---
 
 ## 🚀 Como rodar
 
+**Demo ao vivo (mais fácil):** https://adrianofratelli-glitch.github.io/OpsMgr-Web/
+
+**Localmente com a stack completa (backend Python):**
 ```bash
 ./run-dev.sh        # ou, no terminal: opsmgr
 ```
@@ -23,7 +30,15 @@ Sobe o backend (FastAPI, porta 8077) + frontend (Vite/LeafyGreen, porta 5191) e 
 
 > Primeira execução instala as dependências (npm + venv Python) automaticamente.
 
+**Publicar nova versão da demo ao vivo:**
+```bash
+./deploy-pages.sh   # build estático (mock) → GitHub Pages
+```
+
 Detalhes de arquitetura, endpoints e execução manual: veja **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+
+> 💡 **Dois modos:** o site público usa **modo mock** (dados embutidos no front, custo zero).
+> Rodando local via `opsmgr`, o front consome o **backend FastAPI real** — ideal para demos técnicas da arquitetura.
 
 ---
 

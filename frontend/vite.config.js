@@ -3,7 +3,9 @@ import react from '@vitejs/plugin-react'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 // Em dev, /api é redirecionado para o backend FastAPI (porta 8077).
+// base: '/' em dev/local; '/OpsMgr-Web/' no build do GitHub Pages (via VITE_BASE).
 export default defineConfig({
+  base: process.env.VITE_BASE || '/',
   // nodePolyfills: alguns transitive deps do LeafyGreen (@emotion/server →
   // html-tokenize) usam Buffer/process do Node, que não existem no browser.
   plugins: [nodePolyfills({ globals: { Buffer: true, global: true, process: true } }), react()],
